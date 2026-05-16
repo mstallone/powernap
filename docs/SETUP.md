@@ -55,7 +55,7 @@ This writes a PowerNAP-managed command hook to `~/.codex/hooks.json` and enables
 
 ```toml
 [features]
-codex_hooks = true
+hooks = true
 ```
 
 The hook is inert outside a PowerNAP-wrapped run. It exits immediately unless `POWERNAP_RUN_ID`, `POWERNAP_HOOK_TOKEN`, and `POWERNAP_SOCKET` are present.

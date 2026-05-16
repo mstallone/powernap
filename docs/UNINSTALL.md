@@ -8,7 +8,7 @@ If you want to remove Codex hook entries first:
 powernap hooks uninstall
 ```
 
-This removes PowerNAP-managed Codex hooks and cleans stale Claude per-run overlays. It preserves other user hooks and does not force `codex_hooks = false`.
+This removes PowerNAP-managed Codex hooks and cleans stale Claude per-run overlays. It preserves other user hooks and does not force `hooks = false`.
 
 ## Remove LaunchAgents And Binaries
 

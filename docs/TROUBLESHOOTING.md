@@ -67,7 +67,7 @@ powernap doctor --hardware-spike
 Common causes:
 
 - The agent has not emitted `UserPromptSubmit` or another active hook yet.
-- Codex hooks are not installed or `codex_hooks` is disabled.
+- Codex hooks are not installed or `hooks` is disabled.
 - Claude was launched with `--bare`, which skips hooks.
 - Battery or thermal policy released the lease.
 - The watchdog found a stale heartbeat and cleared the clamshell override.
@@ -82,14 +82,14 @@ Check:
 ```bash
 powernap hooks status
 cat ~/.codex/hooks.json
-rg -n "codex_hooks" ~/.codex/config.toml
+rg -n "hooks" ~/.codex/config.toml
 ```
 
 Expected config:
 
 ```toml
 [features]
-codex_hooks = true
+hooks = true
 ```
 
 The PowerNAP Codex hook should emit no stdout and should exit `0` if the daemon is unavailable. To debug hook parse/send failures:

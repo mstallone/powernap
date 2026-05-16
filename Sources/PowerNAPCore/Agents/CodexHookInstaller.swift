@@ -8,7 +8,7 @@ public enum CodexHookInstallerError: Swift.Error, LocalizedError {
         switch self {
         case .encodingFailed: return "failed to encode Codex hooks.json"
         case .parseFailed(let s): return "failed to parse existing ~/.codex/hooks.json: \(s)"
-        case .configTomlWriteFailed(let s): return "failed to ensure [features] codex_hooks in ~/.codex/config.toml: \(s)"
+        case .configTomlWriteFailed(let s): return "failed to ensure [features] hooks in ~/.codex/config.toml: \(s)"
         }
     }
 }
@@ -244,11 +244,12 @@ public enum CodexHookInstaller {
 
         if let parsed = try? TOMLMini.parse(content),
            let features = parsed["features"]?.tableValue,
-           features["codex_hooks"]?.boolValue == true {
+           features["hooks"]?.boolValue == true,
+           features["codex_hooks"] == nil {
             return false
         }
 
-        var lines = content.components(separatedBy: "\n")
+        var lines = content.isEmpty ? [] : content.components(separatedBy: "\n")
         if let featuresIdx = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "[features]" }) {
             var sectionEnd = lines.count
             for i in (featuresIdx + 1)..<lines.count {
@@ -258,18 +259,25 @@ public enum CodexHookInstaller {
                     break
                 }
             }
-            var foundIdx: Int? = nil
-            for i in (featuresIdx + 1)..<sectionEnd {
-                let t = lines[i].trimmingCharacters(in: .whitespaces)
-                if t.hasPrefix("codex_hooks") {
-                    foundIdx = i
+            var hooksIdx: Int? = nil
+            var i = featuresIdx + 1
+            while i < sectionEnd {
+                switch tomlKeyName(in: lines[i]) {
+                case "codex_hooks":
+                    lines.remove(at: i)
+                    sectionEnd -= 1
+                    continue
+                case "hooks":
+                    hooksIdx = i
+                default:
                     break
                 }
+                i += 1
             }
-            if let fi = foundIdx {
-                lines[fi] = "codex_hooks = true"
+            if let hi = hooksIdx {
+                lines[hi] = "hooks = true"
             } else {
-                lines.insert("codex_hooks = true", at: featuresIdx + 1)
+                lines.insert("hooks = true", at: featuresIdx + 1)
             }
         } else {
             if !content.isEmpty && !content.hasSuffix("\n") {
@@ -277,11 +285,20 @@ public enum CodexHookInstaller {
             }
             lines.append("")
             lines.append("[features]")
-            lines.append("codex_hooks = true")
+            lines.append("hooks = true")
         }
 
         let newContent = lines.joined(separator: "\n")
+        if newContent == content {
+            return false
+        }
         try FileSystemHelper.writeAtomically(data: Data(newContent.utf8), to: url, permissions: 0o644)
         return true
+    }
+
+    private static func tomlKeyName(in line: String) -> String? {
+        let withoutComment = line.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? line
+        guard let equalsIdx = withoutComment.firstIndex(of: "=") else { return nil }
+        return withoutComment[..<equalsIdx].trimmingCharacters(in: .whitespaces)
     }
 }

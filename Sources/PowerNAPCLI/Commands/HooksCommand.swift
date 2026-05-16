@@ -54,9 +54,9 @@ struct HooksInstallCommand: AsyncParsableCommand {
         }
         print("events installed: \(result.eventsInstalled.joined(separator: ", "))")
         if result.configTomlModified {
-            print("enabled [features] codex_hooks = true in \(result.configTomlPath)")
+            print("enabled [features] hooks = true in \(result.configTomlPath)")
         } else {
-            print("[features] codex_hooks already enabled in \(result.configTomlPath)")
+            print("[features] hooks already enabled in \(result.configTomlPath)")
         }
         print("note: hooks are inert unless POWERNAP_RUN_ID/POWERNAP_HOOK_TOKEN env is set")
     }

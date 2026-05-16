@@ -143,7 +143,11 @@ struct DoctorCommand: AsyncParsableCommand {
             check("Codex version", ok: versionResult.status == 0, detail: version.isEmpty ? versionResult.stderr : version, warnOnly: true)
             let featuresResult = runProcess(codex, ["features", "list"], timeoutSeconds: checkTimeoutSeconds)
             let features = featuresResult.stdout
-            check("Codex hooks feature", ok: featuresResult.status == 0 && features.contains("codex_hooks") && features.contains("true"), detail: featuresResult.status == 124 ? featuresResult.stderr : (features.contains("codex_hooks") ? "codex_hooks present" : "codex_hooks missing"), warnOnly: true)
+            let hooksEnabled = features.split(whereSeparator: \.isNewline).contains { line in
+                let columns = line.split(whereSeparator: \.isWhitespace)
+                return columns.first == "hooks" && columns.last == "true"
+            }
+            check("Codex hooks feature", ok: featuresResult.status == 0 && hooksEnabled, detail: featuresResult.status == 124 ? featuresResult.stderr : (hooksEnabled ? "hooks feature enabled" : "hooks feature missing or disabled"), warnOnly: true)
             check("Codex PowerNAP hook installed", ok: CodexHookInstaller.isInstalled(), detail: CodexHookInstaller.configPath(), warnOnly: true)
         }
 

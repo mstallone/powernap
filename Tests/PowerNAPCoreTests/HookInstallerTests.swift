@@ -48,7 +48,8 @@ final class HookInstallerTests: XCTestCase {
         let s = String(data: tomlData, encoding: .utf8) ?? ""
         let parsed = try TOMLMini.parse(s)
         let features = try XCTUnwrap(parsed["features"]?.tableValue)
-        XCTAssertEqual(features["codex_hooks"]?.boolValue, true)
+        XCTAssertEqual(features["hooks"]?.boolValue, true)
+        XCTAssertNil(features["codex_hooks"])
     }
 
     func testCodexInstallPreservesExistingConfigTomlContent() throws {
@@ -72,7 +73,8 @@ final class HookInstallerTests: XCTestCase {
         XCTAssertTrue(after.contains("[profile]"))
         XCTAssertTrue(after.contains("name = \"default\""))
         let parsed = try TOMLMini.parse(after)
-        XCTAssertEqual(parsed["features"]?.tableValue?["codex_hooks"]?.boolValue, true)
+        XCTAssertEqual(parsed["features"]?.tableValue?["hooks"]?.boolValue, true)
+        XCTAssertNil(parsed["features"]?.tableValue?["codex_hooks"])
         XCTAssertEqual(parsed["model"]?.stringValue, "gpt-4")
         XCTAssertEqual(parsed["profile"]?.tableValue?["name"]?.stringValue, "default")
     }
@@ -94,10 +96,36 @@ final class HookInstallerTests: XCTestCase {
         let after = try String(contentsOf: URL(fileURLWithPath: tomlPath), encoding: .utf8)
         let parsed = try TOMLMini.parse(after)
         let features = try XCTUnwrap(parsed["features"]?.tableValue)
-        XCTAssertEqual(features["codex_hooks"]?.boolValue, true)
+        XCTAssertEqual(features["hooks"]?.boolValue, true)
+        XCTAssertNil(features["codex_hooks"])
         XCTAssertEqual(features["some_other_flag"]?.boolValue, true)
         let featuresCount = after.components(separatedBy: "\n").filter { $0.trimmingCharacters(in: .whitespaces) == "[features]" }.count
         XCTAssertEqual(featuresCount, 1)
+    }
+
+    func testCodexInstallMigratesDeprecatedCodexHooksFlag() throws {
+        let tomlPath = CodexHookInstaller.configTomlPath(home: fakeHome.path)
+        try FileManager.default.createDirectory(
+            at: URL(fileURLWithPath: tomlPath).deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let existingToml = """
+        [features]
+        codex_hooks = true
+        some_other_flag = true
+        """
+        try existingToml.write(to: URL(fileURLWithPath: tomlPath), atomically: true, encoding: .utf8)
+
+        let result = try CodexHookInstaller.install(hookBinaryPath: "/bin/powernap-hook", home: fakeHome.path)
+
+        let after = try String(contentsOf: URL(fileURLWithPath: tomlPath), encoding: .utf8)
+        let parsed = try TOMLMini.parse(after)
+        let features = try XCTUnwrap(parsed["features"]?.tableValue)
+        XCTAssertTrue(result.configTomlModified)
+        XCTAssertEqual(features["hooks"]?.boolValue, true)
+        XCTAssertNil(features["codex_hooks"])
+        XCTAssertEqual(features["some_other_flag"]?.boolValue, true)
+        XCTAssertFalse(after.contains("codex_hooks"))
     }
 
     func testCodexInstallIdempotentOnConfigToml() throws {
