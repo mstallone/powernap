@@ -67,6 +67,10 @@ struct AgentRunner {
             throw AgentRunnerError.daemonUnavailable(error)
         }
 
+        let codexMonitor = makeCodexSessionFileMonitor(runId: runId, token: token)
+        codexMonitor?.start()
+        defer { codexMonitor?.stop() }
+
         let useTTY = isatty(0) != 0 && isatty(1) != 0
         let status: Int32
         if useTTY {
@@ -79,6 +83,23 @@ struct AgentRunner {
         ClaudeHookInstaller.cleanupStaleOverlays()
 
         return status
+    }
+
+    private func makeCodexSessionFileMonitor(runId: String, token: String) -> CodexSessionFileMonitor? {
+        guard agent == "codex" else { return nil }
+        return CodexSessionFileMonitor(
+            workingDirectory: FileManager.default.currentDirectoryPath,
+            logger: logger
+        ) { event in
+            do {
+                try sendSyntheticEvent(runId: runId, token: token, event: event)
+            } catch {
+                logger.debug("codex transcript event send failed", metadata: [
+                    "event": .string(event),
+                    "error": .string(String(describing: error))
+                ])
+            }
+        }
     }
 
     private func runWithPTY(executable: String, arguments: [String], environment: [String: String]) throws -> Int32 {

@@ -98,6 +98,8 @@ The PowerNAP Codex hook should emit no stdout and should exit `0` if the daemon 
 POWERNAP_HOOK_DEBUG=1 powernap codex
 ```
 
+`powernap codex` also tails the matching local Codex session transcript and releases leases from `task_complete` or `turn_aborted` events. If hooks are configured correctly but leases still look stuck after a turn, check that `/usr/local/bin/powernap` was reinstalled after the latest source build.
+
 Normal Codex sessions outside PowerNAP should be unaffected because the hook exits unless PowerNAP run environment variables are present.
 
 ## Claude Hooks Not Firing
