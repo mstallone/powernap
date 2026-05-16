@@ -66,7 +66,7 @@ powernap doctor --hardware-spike
 
 Common causes:
 
-- The agent has not emitted `UserPromptSubmit` or another active hook yet.
+- The installed `/usr/local/bin/powernap` binary is stale after a source update.
 - Codex hooks are not installed or `hooks` is disabled.
 - Claude was launched with `--bare`, which skips hooks.
 - Battery or thermal policy released the lease.

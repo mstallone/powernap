@@ -66,7 +66,7 @@ Protect a generic process for its lifetime:
 powernap run -- ./long-running-agent
 ```
 
-Generic mode treats the process lifetime as active because generic commands do not expose agent-native waiting or permission hooks.
+Codex and Claude wrappers acquire protection immediately, then agent hooks refine the state when a turn waits, idles, finishes, or exits. Generic mode treats the process lifetime as active because generic commands do not expose agent-native waiting or permission hooks.
 
 ## Menu Bar App
 

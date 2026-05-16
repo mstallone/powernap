@@ -61,9 +61,8 @@ struct AgentRunner {
 
         do {
             try sendSyntheticEvent(runId: runId, token: token, event: "SessionStart")
-            if agent != "codex" && agent != "claude" {
-                try sendSyntheticEvent(runId: runId, token: token, event: "UserPromptSubmit")
-            }
+            // Hold protection immediately; native hooks can later move the run to waiting or idle.
+            try sendSyntheticEvent(runId: runId, token: token, event: "UserPromptSubmit")
         } catch {
             throw AgentRunnerError.daemonUnavailable(error)
         }
