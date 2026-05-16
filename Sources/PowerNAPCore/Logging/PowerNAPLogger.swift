@@ -57,18 +57,11 @@ public struct FileLogHandler: LogHandler {
         set { metadata[key] = newValue }
     }
 
+    #if compiler(>=6.1)
     public func log(event: LogEvent) {
-        let ts = FileLogHandler.isoTimestamp(Date())
-        var merged = self.metadata
-        if let metadata = event.metadata { for (k, v) in metadata { merged[k] = v } }
-        let metaStr = merged.isEmpty ? "" : " " + merged.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
-        let line = "\(ts) \(event.level.rawValue.uppercased()) [\(label)] \(event.message)\(metaStr)\n"
-        lock.lock()
-        defer { lock.unlock() }
-        _ = line.withCString { ptr in
-            write(fd, ptr, strlen(ptr))
-        }
+        writeLogLine(level: event.level, message: event.message, metadata: event.metadata)
     }
+    #endif
 
     public func log(level: Logger.Level,
                     message: Logger.Message,
@@ -77,15 +70,20 @@ public struct FileLogHandler: LogHandler {
                     file: String,
                     function: String,
                     line: UInt) {
-        log(event: LogEvent(
-            level: level,
-            message: message,
-            metadata: metadata,
-            source: source,
-            file: file,
-            function: function,
-            line: line
-        ))
+        writeLogLine(level: level, message: message, metadata: metadata)
+    }
+
+    private func writeLogLine(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?) {
+        let ts = FileLogHandler.isoTimestamp(Date())
+        var merged = self.metadata
+        if let metadata { for (k, v) in metadata { merged[k] = v } }
+        let metaStr = merged.isEmpty ? "" : " " + merged.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
+        let line = "\(ts) \(level.rawValue.uppercased()) [\(label)] \(message)\(metaStr)\n"
+        lock.lock()
+        defer { lock.unlock() }
+        _ = line.withCString { ptr in
+            Darwin.write(fd, ptr, strlen(ptr))
+        }
     }
 
     private static func isoTimestamp(_ d: Date) -> String {
