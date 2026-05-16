@@ -20,15 +20,18 @@ The script unloads:
 
 - `dev.powernap.daemon`
 - `dev.powernap.watchdog`
+- `dev.powernap.menu`
 
 Then it removes:
 
 - `/usr/local/bin/powernap`
 - `/usr/local/bin/powernapd`
 - `/usr/local/bin/powernap-hook`
+- `/usr/local/bin/powernap-menu`
 - `/usr/local/bin/powernap-watchdog`
 - `~/Library/LaunchAgents/dev.powernap.daemon.plist`
 - `~/Library/LaunchAgents/dev.powernap.watchdog.plist`
+- `~/Library/LaunchAgents/dev.powernap.menu.plist`
 
 ## Remove State And Logs
 

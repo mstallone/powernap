@@ -18,6 +18,7 @@ public enum HookBinary {
 
     public static func run() -> Int32 {
         let env = ProcessInfo.processInfo.environment
+        let stdinData = FileHandle.standardInput.readDataToEndOfFile()
         guard let runId = env["POWERNAP_RUN_ID"], !runId.isEmpty else {
             return 0
         }
@@ -25,7 +26,6 @@ public enum HookBinary {
         let token = env["POWERNAP_HOOK_TOKEN"] ?? ""
         let socketPath = env["POWERNAP_SOCKET"] ?? ConfigPaths.socketPath
 
-        let stdinData = FileHandle.standardInput.availableData
         let input: HookEventMapper.Input
         do {
             input = try parse(stdinData: stdinData, runId: runId, env: env)

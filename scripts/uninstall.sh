@@ -16,6 +16,7 @@ fi
 
 PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.daemon.plist"
 WATCHDOG_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.watchdog.plist"
+MENU_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.menu.plist"
 CODEX_HOOKS="$TARGET_HOME/.codex/hooks.json"
 CODEX_CONFIG="$TARGET_HOME/.codex/config.toml"
 
@@ -23,6 +24,7 @@ BINARIES=(
     "powernap"
     "powernapd"
     "powernap-hook"
+    "powernap-menu"
     "powernap-watchdog"
 )
 
@@ -44,6 +46,7 @@ elif [[ -x "$INSTALL_DIR/powernap" ]]; then
 else
     launchctl bootout "gui/$TARGET_UID/dev.powernap.daemon" 2>/dev/null || true
     launchctl bootout "gui/$TARGET_UID/dev.powernap.watchdog" 2>/dev/null || true
+    launchctl bootout "gui/$TARGET_UID/dev.powernap.menu" 2>/dev/null || true
 fi
 
 removed_paths=()
@@ -53,8 +56,12 @@ fi
 if [[ -e "$WATCHDOG_PLIST_DST" ]]; then
     removed_paths+=("$WATCHDOG_PLIST_DST")
 fi
+if [[ -e "$MENU_PLIST_DST" ]]; then
+    removed_paths+=("$MENU_PLIST_DST")
+fi
 rm -f "$PLIST_DST"
 rm -f "$WATCHDOG_PLIST_DST"
+rm -f "$MENU_PLIST_DST"
 
 if [[ -d "$INSTALL_DIR" && ! -w "$INSTALL_DIR" ]]; then
     RM_CMD=(sudo rm -f)

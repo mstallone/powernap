@@ -59,8 +59,7 @@ final class FrameCodecTests: XCTestCase {
             leases: [
                 StatusPayload.LeaseInfo(leaseType: "idle_sleep", held: true, expiresAt: Date(timeIntervalSince1970: 2))
             ],
-            safety: StatusPayload.SafetyInfo(batteryPercent: 80, charging: true, thermalState: "nominal"),
-            network: StatusPayload.NetworkInfo(primary: "en0", health: "ok", route: nil, lastProbe: nil)
+            safety: StatusPayload.SafetyInfo(batteryPercent: 80, charging: true, thermalState: "nominal")
         )
         let resp = IPCResponse(requestId: "r-123", body: .status(status))
         let data = try FrameCodec.encode(resp)
@@ -73,7 +72,6 @@ final class FrameCodecTests: XCTestCase {
         XCTAssertEqual(s.sessions[0].phase, .active)
         XCTAssertEqual(s.leases[0].leaseType, "idle_sleep")
         XCTAssertEqual(s.safety.batteryPercent, 80)
-        XCTAssertEqual(s.network.primary, "en0")
         XCTAssertEqual(decoded.requestId, "r-123")
     }
 

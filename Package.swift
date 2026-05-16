@@ -10,6 +10,7 @@ let package = Package(
         .executable(name: "powernap", targets: ["PowerNAPCLI"]),
         .executable(name: "powernapd", targets: ["PowerNAPDaemonBin"]),
         .executable(name: "powernap-hook", targets: ["PowerNAPHookBin"]),
+        .executable(name: "powernap-menu", targets: ["PowerNAPMenuBar"]),
         .executable(name: "powernap-watchdog", targets: ["PowerNAPWatchdogBin"]),
         .library(name: "PowerNAPCore", targets: ["PowerNAPCore"])
     ],
@@ -38,11 +39,7 @@ let package = Package(
             linkerSettings: [
                 .linkedFramework("IOKit"),
                 .linkedFramework("CoreFoundation"),
-                .linkedFramework("Foundation"),
-                .linkedFramework("Security"),
-                .linkedFramework("CoreWLAN"),
-                .linkedFramework("SystemConfiguration"),
-                .linkedFramework("Network")
+                .linkedFramework("Foundation")
             ]
         ),
         .executableTarget(
@@ -72,6 +69,16 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ],
             path: "Sources/PowerNAPHook"
+        ),
+        .executableTarget(
+            name: "PowerNAPMenuBar",
+            dependencies: [
+                "PowerNAPCore"
+            ],
+            path: "Sources/PowerNAPMenuBar",
+            linkerSettings: [
+                .linkedFramework("AppKit")
+            ]
         ),
         .executableTarget(
             name: "PowerNAPWatchdogBin",

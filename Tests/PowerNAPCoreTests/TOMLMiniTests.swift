@@ -55,19 +55,19 @@ final class TOMLMiniTests: XCTestCase {
 
     func testParseArrayTables() throws {
         let t = try TOMLMini.parse("""
-        [[network.hotspots]]
-        ssid = "Home"
-        keychain_account = "PowerNAP Hotspot Home"
+        [[hooks.events]]
+        name = "SessionStart"
+        phase = "starting"
 
-        [[network.hotspots]]
-        ssid = "Office"
+        [[hooks.events]]
+        name = "SessionEnd"
         """)
-        let network = t["network"]?.tableValue
-        let hotspots = network?["hotspots"]?.arrayValue
-        XCTAssertEqual(hotspots?.count, 2)
-        XCTAssertEqual(hotspots?[0].tableValue?["ssid"]?.stringValue, "Home")
-        XCTAssertEqual(hotspots?[0].tableValue?["keychain_account"]?.stringValue, "PowerNAP Hotspot Home")
-        XCTAssertEqual(hotspots?[1].tableValue?["ssid"]?.stringValue, "Office")
+        let hooks = t["hooks"]?.tableValue
+        let events = hooks?["events"]?.arrayValue
+        XCTAssertEqual(events?.count, 2)
+        XCTAssertEqual(events?[0].tableValue?["name"]?.stringValue, "SessionStart")
+        XCTAssertEqual(events?[0].tableValue?["phase"]?.stringValue, "starting")
+        XCTAssertEqual(events?[1].tableValue?["name"]?.stringValue, "SessionEnd")
     }
 
     func testStripsInlineComments() throws {

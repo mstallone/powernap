@@ -6,7 +6,7 @@ import ArgumentParser
 struct PowerNAPCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "powernap",
-        abstract: "Keep AI coding agents alive through lid-close and network changes.",
+        abstract: "Keep AI coding agents alive through lid-close sleep.",
         version: "0.1.0",
         subcommands: [
             CodexCommand.self,
@@ -18,9 +18,7 @@ struct PowerNAPCLI: AsyncParsableCommand {
             HooksCommand.self,
             LogsCommand.self,
             LeasesCommand.self,
-            NetworkCommand.self,
             ConfigCommand.self,
-            RelayCommand.self,
             InstallCommand.self,
             UninstallCommand.self
         ]

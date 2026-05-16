@@ -5,7 +5,7 @@ import PowerNAPCore
 struct InstallCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "install",
-        abstract: "Install launchd agents for powernapd and powernap-watchdog."
+        abstract: "Install launchd agents for powernapd, powernap-watchdog, and powernap-menu."
     )
 
     @Flag(name: .long, help: "Skip loading agents after writing plists.")
@@ -25,30 +25,38 @@ struct InstallCommand: AsyncParsableCommand {
 
         let daemonBin = try locateBinary("powernapd")
         let watchdogBin = try locateBinary("powernap-watchdog")
+        let menuBin = try locateBinary("powernap-menu")
 
         let daemonPlistPath = "\(agentsDir)/dev.powernap.daemon.plist"
         let watchdogPlistPath = "\(agentsDir)/dev.powernap.watchdog.plist"
+        let menuPlistPath = "\(agentsDir)/dev.powernap.menu.plist"
 
         let daemonPlist = try plistData(label: "dev.powernap.daemon", program: daemonBin, args: [], logsName: "powernapd")
         let watchdogPlist = try plistData(label: "dev.powernap.watchdog", program: watchdogBin, args: [], logsName: "watchdog")
+        let menuPlist = try plistData(label: "dev.powernap.menu", program: menuBin, args: [], logsName: "menu")
         try daemonPlist.write(to: URL(fileURLWithPath: daemonPlistPath), options: [.atomic])
         try watchdogPlist.write(to: URL(fileURLWithPath: watchdogPlistPath), options: [.atomic])
+        try menuPlist.write(to: URL(fileURLWithPath: menuPlistPath), options: [.atomic])
 
         print("wrote \(daemonPlistPath)")
         print("wrote \(watchdogPlistPath)")
+        print("wrote \(menuPlistPath)")
 
         if !noLoad {
             let uid = getuid()
             _ = try? run("/bin/launchctl", ["bootout", "gui/\(uid)/dev.powernap.daemon"])
             _ = try? run("/bin/launchctl", ["bootout", "gui/\(uid)/dev.powernap.watchdog"])
+            _ = try? run("/bin/launchctl", ["bootout", "gui/\(uid)/dev.powernap.menu"])
             try await Task.sleep(nanoseconds: 300_000_000)
             try await bootstrapWithRetry(uid: uid, plistPath: daemonPlistPath, label: "dev.powernap.daemon")
             try await bootstrapWithRetry(uid: uid, plistPath: watchdogPlistPath, label: "dev.powernap.watchdog")
+            try await bootstrapWithRetry(uid: uid, plistPath: menuPlistPath, label: "dev.powernap.menu")
             print("bootstrapped launch agents.")
         } else {
             print("skipped launchctl bootstrap. Load with:")
             print("  launchctl bootstrap gui/\(getuid()) \(daemonPlistPath)")
             print("  launchctl bootstrap gui/\(getuid()) \(watchdogPlistPath)")
+            print("  launchctl bootstrap gui/\(getuid()) \(menuPlistPath)")
         }
     }
 

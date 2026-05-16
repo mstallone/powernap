@@ -1,27 +1,34 @@
 # PowerNAP
 
-PowerNAP is a macOS CLI and per-user daemon for long-running AI coding agent sessions. The target workflow is:
+PowerNAP keeps long-running AI coding agent sessions alive on macOS while they are actively working, then gets out of the way when they stop.
+
+It is built for workflows like:
 
 ```bash
 powernap codex
 ```
 
-You start a long Codex or Claude Code turn at a coffee shop, close the MacBook, get in a car, and do nothing else. While the agent is actively working, PowerNAP holds macOS power leases and tries to move networking from Wi-Fi to phone tethering. When the agent finishes the turn, asks for input, waits for permission, or exits, PowerNAP releases the leases so macOS can sleep normally.
+Start a long Codex or Claude Code turn, close the MacBook, and let the agent continue. PowerNAP holds macOS power leases only while protected work is active. When the agent waits for input, asks for permission, finishes, errors, or exits, PowerNAP releases its leases so the Mac can sleep normally.
 
-## What It Guarantees
+## What You Get
 
-PowerNAP Free controls only the local Mac:
+- `powernap`: CLI wrapper for Codex, Claude Code, and generic long-running commands.
+- `powernapd`: per-user daemon that tracks protected sessions and owns power leases.
+- `powernap-hook`: small fail-open hook binary for Codex and Claude Code events.
+- `powernap-watchdog`: independent cleanup process for stale closed-lid state.
+- `powernap-menu`: menu bar companion that shows whether PowerNAP is blocking sleep and how many active protected threads are keeping the Mac awake.
 
-- Prevents idle sleep and pre-arms the closed-lid clamshell override during active agent work.
-- Releases power leases when hooks report waiting, turn-idle, done, or error states.
-- Runs `powernapd` and `powernap-watchdog` as per-user LaunchAgents.
-- Uses Codex and Claude Code hooks through an agent-agnostic normalized event model.
-- Prefers iPhone USB tethering, then configured Wi-Fi hotspots, only while an agent turn is active.
-- Restores network service order and power state on idle, exit, daemon restore, or manual `powernap restore`.
+PowerNAP is local-only. Its job is power/session safety on this Mac.
 
-PowerNAP Free does not guarantee that an already-open OpenAI or Anthropic stream survives a hard network break. A local-only proxy cannot preserve the upstream TCP/TLS/WebSocket/SSE connection after the Mac loses its network path. Exact stream continuity needs a remote relay or application-aware resume.
+## Requirements
 
-## Quick Start
+- macOS 13 or later.
+- Xcode Command Line Tools.
+- Codex and/or Claude Code if you want first-class agent hooks.
+
+Apple Silicon is the primary tested target.
+
+## Install
 
 ```bash
 swift build -c release
@@ -29,40 +36,126 @@ swift build -c release
 powernap hooks install
 powernap doctor
 powernap doctor --hardware-spike
+```
+
+`scripts/install.sh` builds release binaries, copies them to `/usr/local/bin`, and installs three per-user LaunchAgents:
+
+- `dev.powernap.daemon`
+- `dev.powernap.watchdog`
+- `dev.powernap.menu`
+
+The hardware spike briefly enables and clears the closed-lid override. Run it before relying on closed-lid behavior.
+
+## Use
+
+Run Codex under PowerNAP:
+
+```bash
 powernap codex
 ```
 
-`powernap doctor --hardware-spike` briefly enables and clears the clamshell override. Run it before real closed-lid QA.
+Run Claude Code under PowerNAP:
+
+```bash
+powernap claude
+```
+
+Protect a generic process for its lifetime:
+
+```bash
+powernap run -- ./long-running-agent
+```
+
+Generic mode treats the process lifetime as active because generic commands do not expose agent-native waiting or permission hooks.
+
+## Menu Bar App
+
+`powernap-menu` starts automatically after install. It shows:
+
+- a bolt icon when PowerNAP is blocking sleep;
+- a moon icon when normal sleep is allowed;
+- a question-mark icon when the daemon cannot be reached;
+- a count beside the icon for active protected agent threads.
+
+The menu includes daemon state, sleep state, active thread count, held leases, active sessions, battery state, thermal state, last refresh time, restore, logs, refresh, and quit actions.
 
 ## Commands
 
-- `powernap codex [args...]`: Run Codex with PowerNAP protection.
-- `powernap claude [args...]`: Run Claude Code with PowerNAP protection.
-- `powernap run -- <command> [args...]`: Protect a generic command for its process lifetime.
-- `powernap status [--json]`: Show daemon, session, lease, safety, and network state.
-- `powernap doctor [--hardware-spike]`: Diagnose install, hooks, safety, and network readiness.
-- `powernap restore`: Clear PowerNAP leases, clamshell state, and network service order.
-- `powernap hooks install|status|uninstall|clean`: Manage Codex hooks and Claude overlays.
-- `powernap network status|prefer-usb|prefer-bluetooth|restore`: Inspect or manually request network failover behavior.
-- `powernap logs`, `powernap leases`, `powernap config`, `powernap install`, `powernap uninstall`.
+```bash
+powernap status [--json]
+powernap leases
+powernap restore
+powernap doctor [--hardware-spike] [--check-timeout-seconds 2]
+powernap hooks install|status|uninstall|clean
+powernap config
+powernap logs
+powernap install
+powernap uninstall
+```
 
-## Documentation
+`powernap restore` is safe to run repeatedly. It releases PowerNAP-owned leases, clears the closed-lid override, and marks open leases released in local state.
 
-- [Setup Guide](docs/SETUP.md)
-- [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
-- [Research References](docs/RESEARCH_REFERENCES.md)
+## Configuration
+
+PowerNAP writes config to:
+
+```text
+~/Library/Application Support/PowerNAP/config.toml
+```
+
+Important defaults:
+
+```toml
+[power]
+closed_lid_enabled = true
+idle_sleep_assertion = true
+max_closed_lid_minutes = 120
+release_when_waiting = true
+prearm_clamshell_on_active = true
+
+[safety]
+min_battery_percent = 20
+critical_battery_percent = 10
+allow_on_battery = true
+allow_thermal_serious = false
+watchdog_heartbeat_seconds = 60
+watchdog_release_after_seconds = 180
+active_lease_ttl_seconds = 1800
+waiting_grace_seconds = 20
+```
+
+Runtime paths can be overridden for tests with `POWERNAP_RUNTIME_DIR`, `POWERNAP_APP_SUPPORT_DIR`, and `POWERNAP_LOGS_DIR`.
+
+## Safety Model
+
+PowerNAP is conservative by default:
+
+- Hooks fail open so agent commands are not blocked by hook errors.
+- Agent wrappers fail closed if the daemon is unavailable before protection starts.
+- Power leases release when agents wait, idle, finish, error, or exit.
+- Battery, thermal, TTL, daemon shutdown, watchdog, and manual restore paths all release PowerNAP-owned state.
+- The watchdog independently clears stale closed-lid state if the daemon dies.
+- PowerNAP does not log prompts, model output, API request bodies, credentials, or raw hook JSON by default.
+
+## Development
+
+```bash
+swift test
+swift build -c release
+bash -n scripts/install.sh scripts/uninstall.sh
+```
+
+CI runs the same build, test, and shell syntax gates on macOS.
+
+## Docs
+
+- [Setup](docs/SETUP.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Manual QA](docs/MANUAL_QA.md)
-- [Uninstallation](docs/UNINSTALL.md)
-- [System Plan](docs/SYSTEM_PLAN.md)
+- [Uninstall](docs/UNINSTALL.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
-## Current Local Verification
+## License
 
-Last verified on 2026-04-30:
-
-- macOS 26.4.1 arm64.
-- Codex CLI 0.128.0 with `codex_hooks` stable/enabled and `prevent_idle_sleep` experimental/enabled.
-- Claude Code 2.1.105 with `--settings` and `--include-hook-events`.
-- Network services: Wi-Fi `en0`, iPhone USB `en8`, Thunderbolt Bridge, ProtonVPN.
-
-See [Research References](docs/RESEARCH_REFERENCES.md) for source-backed claims and links.
+PowerNAP is released under the [MIT License](LICENSE).

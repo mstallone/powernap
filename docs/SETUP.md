@@ -6,10 +6,6 @@
 - Apple Silicon is the primary tested target.
 - Xcode Command Line Tools: `xcode-select --install`.
 - Codex and/or Claude Code installed if you want first-class hooks.
-- For the coffee-shop-to-car demo, set up at least one phone fallback:
-  - Preferred: iPhone USB connected, trusted by the Mac, with Personal Hotspot available.
-  - Optional: a known iPhone hotspot SSID configured in PowerNAP.
-  - Optional: Apple Auto-Join Hotspot. Apple documents fully automatic Mac joining as available on macOS Tahoe 26 or later, so do not rely on it for older macOS targets.
 
 ## Build
 
@@ -22,6 +18,7 @@ The release artifacts are in `.build/release/`:
 - `powernap`
 - `powernapd`
 - `powernap-hook`
+- `powernap-menu`
 - `powernap-watchdog`
 
 ## Install
@@ -32,7 +29,7 @@ The easiest install path is:
 ./scripts/install.sh
 ```
 
-The script builds release artifacts, copies all four binaries to `/usr/local/bin`, and runs:
+The script builds release artifacts, copies all five binaries to `/usr/local/bin`, and runs:
 
 ```bash
 powernap install
@@ -42,8 +39,9 @@ powernap install
 
 - `~/Library/LaunchAgents/dev.powernap.daemon.plist`
 - `~/Library/LaunchAgents/dev.powernap.watchdog.plist`
+- `~/Library/LaunchAgents/dev.powernap.menu.plist`
 
-The daemon and watchdog run as the current user, not root.
+The daemon, watchdog, and menu bar companion run as the current user, not root.
 
 ## Configure Hooks
 
@@ -72,10 +70,10 @@ Run the non-invasive checks:
 powernap doctor
 ```
 
-If `doctor` is being used as a fast smoke test, skip outbound probes and bound subprocess checks:
+If `doctor` is being used as a fast smoke test, bound subprocess checks:
 
 ```bash
-powernap doctor --skip-network-probes --check-timeout-seconds 2
+powernap doctor --check-timeout-seconds 2
 ```
 
 Before closing the lid for real QA, run the explicit hardware spike:
@@ -91,10 +89,12 @@ Useful checks:
 ```bash
 powernap status
 powernap hooks status
-powernap network status
 launchctl print gui/$(id -u)/dev.powernap.daemon
 launchctl print gui/$(id -u)/dev.powernap.watchdog
+launchctl print gui/$(id -u)/dev.powernap.menu
 ```
+
+The menu bar icon uses a bolt while PowerNAP is blocking sleep, a moon when normal sleep is allowed, and a question mark when daemon status is unavailable. The number beside the icon is the count of active protected agent threads keeping the Mac awake.
 
 ## Run
 
@@ -126,7 +126,7 @@ If anything looks wrong:
 powernap restore
 ```
 
-`restore` asks the daemon to release PowerNAP-owned leases, clear the clamshell override, and restore the saved network service order. If the daemon is unavailable, the CLI performs a local safety restore from the state database.
+`restore` asks the daemon to release PowerNAP-owned leases and clear the clamshell override. If the daemon is unavailable, the CLI performs a local safety restore from the state database.
 
 ## Configuration
 
@@ -155,35 +155,6 @@ watchdog_heartbeat_seconds = 60
 watchdog_release_after_seconds = 180
 active_lease_ttl_seconds = 1800
 waiting_grace_seconds = 20
-
-[network]
-enabled = true
-allow_cellular = true
-prefer_usb_tether = true
-allow_wifi_hotspot = true
-allow_bluetooth_pan = false
-restore_service_order = true
-keep_tether_until_turn_done = true
-max_cellular_mb_per_session = 2048
-```
-
-For an iPhone Bluetooth Personal Hotspot path, pair/connect the iPhone in macOS System Settings first so macOS exposes a `Bluetooth PAN` network service. Then set:
-
-```toml
-[network]
-enabled = true
-prefer_usb_tether = false
-allow_wifi_hotspot = false
-allow_bluetooth_pan = true
-restore_service_order = true
-```
-
-Manual test:
-
-```bash
-powernap network prefer-bluetooth
-powernap network status
-powernap network restore
 ```
 
 Runtime paths can be overridden for tests:

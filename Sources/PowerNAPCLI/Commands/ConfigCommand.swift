@@ -30,17 +30,6 @@ struct ConfigShowCommand: AsyncParsableCommand {
         print("  waiting_grace_seconds = \(cfg.safety.waitingGraceSeconds)")
         print("  watchdog_heartbeat_seconds = \(cfg.safety.watchdogHeartbeatSeconds)")
         print("  watchdog_release_after_seconds = \(cfg.safety.watchdogReleaseAfterSeconds)")
-        print("[network]")
-        print("  enabled = \(cfg.network.enabled)")
-        print("  prefer_usb_tether = \(cfg.network.preferUSBTether)")
-        print("  allow_wifi_hotspot = \(cfg.network.allowWiFiHotspot)")
-        print("  allow_bluetooth_pan = \(cfg.network.allowBluetoothPAN)")
-        if !cfg.network.hotspots.isEmpty {
-            print("  hotspots:")
-            for h in cfg.network.hotspots {
-                print("    - \(h.ssid)")
-            }
-        }
         print("[codex]")
         print("  enabled = \(cfg.codex.enabled)  mode = \(cfg.codex.hookMode)")
         print("[claude]")
@@ -54,7 +43,7 @@ struct ConfigEditCommand: AsyncParsableCommand {
         let editor = ProcessInfo.processInfo.environment["EDITOR"] ?? "vi"
         let path = ConfigPaths.configFilePath
         if !FileManager.default.fileExists(atPath: path) {
-            let sample = "[power]\n# closed_lid_enabled = true\n# prearm_clamshell_on_active = true\n\n[network]\n# prefer_usb_tether = true\n# [[network.hotspots]]\n# ssid = \"MyHotspot\"\n"
+            let sample = "[power]\n# closed_lid_enabled = true\n# prearm_clamshell_on_active = true\n"
             try sample.data(using: .utf8)!.write(to: URL(fileURLWithPath: path))
         }
         let task = Process()

@@ -1,3 +1,20 @@
 .build/
 .swiftpm/
 .DS_Store
+
+# Local editor and Xcode state
+.vscode/
+.idea/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Local environment, logs, and generated crash artifacts
+.env
+.env.*
+*.log
+*.crash
+*.ips
+
+# Local Codex/Sisyphus workspace metadata
+.sisyphus/

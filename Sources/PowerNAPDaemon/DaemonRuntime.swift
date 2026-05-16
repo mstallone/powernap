@@ -43,14 +43,10 @@ public enum DaemonRuntime {
         let leaseManager = LeaseManager(config: config, store: store, logger: logger)
         leaseManager.start()
 
-        let networkOrchestrator = NetworkOrchestrator(config: config, store: store, logger: logger)
-        networkOrchestrator.start()
-
         let server = try DaemonServer(
             config: config,
             store: store,
             leaseManager: leaseManager,
-            network: networkOrchestrator,
             logger: logger
         )
         try server.start()
@@ -58,7 +54,7 @@ public enum DaemonRuntime {
         let heartbeat = HeartbeatWriter(intervalSeconds: config.safety.watchdogHeartbeatSeconds, logger: logger)
         heartbeat.start()
 
-        setupSignalHandling(server: server, heartbeat: heartbeat, leaseManager: leaseManager, network: networkOrchestrator, store: store, logger: logger)
+        setupSignalHandling(server: server, heartbeat: heartbeat, leaseManager: leaseManager, store: store, logger: logger)
 
         logger.info("powernapd ready")
 
@@ -69,7 +65,6 @@ public enum DaemonRuntime {
         }
 
         leaseManager.shutdown()
-        networkOrchestrator.shutdown()
         heartbeat.stop()
         try? server.stop()
         clearHeartbeat()
@@ -86,13 +81,12 @@ public enum DaemonRuntime {
         try? FileManager.default.removeItem(atPath: ConfigPaths.heartbeatPath)
     }
 
-    static func setupSignalHandling(server: DaemonServer, heartbeat: HeartbeatWriter, leaseManager: LeaseManager, network: NetworkOrchestrator, store: StateStore, logger: Logger) {
+    static func setupSignalHandling(server: DaemonServer, heartbeat: HeartbeatWriter, leaseManager: LeaseManager, store: StateStore, logger: Logger) {
         signal(SIGPIPE, SIG_IGN)
         let termSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
         termSource.setEventHandler {
             logger.info("SIGTERM received - shutting down")
             leaseManager.forceRelease(reason: .daemonShutdown)
-            network.shutdown()
             try? store.setClamshellActive(false, pid: nil)
             DaemonShutdown.shared.trigger()
         }
@@ -103,7 +97,6 @@ public enum DaemonRuntime {
         intSource.setEventHandler {
             logger.info("SIGINT received - shutting down")
             leaseManager.forceRelease(reason: .daemonShutdown)
-            network.shutdown()
             try? store.setClamshellActive(false, pid: nil)
             DaemonShutdown.shared.trigger()
         }
@@ -189,19 +182,17 @@ public final class DaemonServer {
     private let logger: Logger
     private let ingestor: HookEventIngestor
     private let leaseManager: LeaseManager
-    private let network: NetworkOrchestrator
     private let expectedUID: uid_t
 
     private var serverFD: Int32 = -1
     private var accepting = false
     private let acceptQueue = DispatchQueue(label: "dev.powernap.accept", qos: .utility)
 
-    public init(config: Config, store: StateStore, leaseManager: LeaseManager, network: NetworkOrchestrator, logger: Logger) throws {
+    public init(config: Config, store: StateStore, leaseManager: LeaseManager, logger: Logger) throws {
         self.config = config
         self.store = store
         self.logger = logger
         self.leaseManager = leaseManager
-        self.network = network
         self.ingestor = HookEventIngestor(store: store, leaseManager: leaseManager, logger: logger)
         self.expectedUID = getuid()
     }
@@ -310,7 +301,6 @@ public final class DaemonServer {
         case .hookEvent(let input):
             do {
                 try ingestor.ingest(input: input, providedToken: request.token)
-                network.handleAgentEvent(HookEventMapper.normalize(input))
                 return IPCResponse(requestId: request.id, body: .ack)
             } catch {
                 return IPCResponse(requestId: request.id, body: .error(code: "ingest_failed", message: "\(error)"))
@@ -353,24 +343,12 @@ public final class DaemonServer {
             leaseManager.forceRelease(reason: .manualRestore)
             let clamshell = ClamshellOverride(logger: logger)
             clamshell.forceClearIgnoreErrors()
-            network.restoreServiceOrder()
             let open = (try? store.openLeases()) ?? []
             for lease in open {
                 try? store.releaseLease(id: lease.id, reason: .manualRestore)
             }
             try? store.setClamshellActive(false, pid: nil)
             logger.warning("restore requested (reason=\(reason ?? "-")): released \(open.count) leases")
-            return IPCResponse(requestId: request.id, body: .ack)
-        case .networkStatus:
-            return IPCResponse(requestId: request.id, body: .network(network.statusPayload()))
-        case .networkPreferUSB:
-            network.preferUSBTether()
-            return IPCResponse(requestId: request.id, body: .ack)
-        case .networkPreferBluetoothPAN:
-            network.preferBluetoothPAN()
-            return IPCResponse(requestId: request.id, body: .ack)
-        case .networkRestore:
-            network.restoreServiceOrder()
             return IPCResponse(requestId: request.id, body: .ack)
         case .ping:
             return IPCResponse(requestId: request.id, body: .ack)
@@ -399,7 +377,6 @@ public final class DaemonServer {
         }
         let batt = BatteryMonitor(logger: logger).snapshot()
         let therm = ThermalMonitor().snapshot()
-        let netStatus = network.statusPayload()
         return StatusPayload(
             daemonRunning: true,
             sessions: activeSessions,
@@ -408,12 +385,6 @@ public final class DaemonServer {
                 batteryPercent: batt.percent,
                 charging: batt.isCharging,
                 thermalState: therm.state.rawValue
-            ),
-            network: StatusPayload.NetworkInfo(
-                primary: netStatus.primaryInterface,
-                health: netStatus.probeResults.isEmpty ? "unknown" : "ok",
-                route: netStatus.primaryService,
-                lastProbe: nil
             )
         )
     }

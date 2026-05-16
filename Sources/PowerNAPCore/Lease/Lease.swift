@@ -3,8 +3,6 @@ import Foundation
 public enum LeaseType: String, Codable, Sendable, CaseIterable {
     case idleSleep = "idle_sleep"
     case clamshellSleep = "clamshell_sleep"
-    case networkFailover = "network_failover"
-    case localProxy = "local_proxy"
 }
 
 public enum LeaseReleaseReason: String, Codable, Sendable {
@@ -17,7 +15,6 @@ public enum LeaseReleaseReason: String, Codable, Sendable {
     case manualRestore = "manual_restore"
     case watchdog = "watchdog"
     case daemonShutdown = "daemon_shutdown"
-    case networkRestored = "network_restored"
 }
 
 public struct Lease: Codable, Sendable, Identifiable, Hashable {

@@ -44,32 +44,15 @@ public enum ConfigLoader {
     active_lease_ttl_seconds = 1800
     waiting_grace_seconds = 20
 
-    [network]
-    enabled = true
-    allow_cellular = true
-    prefer_usb_tether = true
-    allow_wifi_hotspot = true
-    allow_bluetooth_pan = false
-    restore_service_order = true
-    keep_tether_until_turn_done = true
-    max_cellular_mb_per_session = 2048
-
     [agents.codex]
     enabled = true
     hook_mode = "global-inert"
-    proxy_mode = "env"
     hook_timeout_seconds = 2
 
     [agents.claude]
     enabled = true
     hook_mode = "per-run-settings"
-    proxy_mode = "env"
     hook_timeout_seconds = 2
-
-    [premium]
-    enabled = false
-    relay_url = ""
-    mode = "stable-egress"
 
     """
 
@@ -95,45 +78,17 @@ public enum ConfigLoader {
             cfg.safety.waitingGraceSeconds = safetyT["waiting_grace_seconds"]?.intValue ?? cfg.safety.waitingGraceSeconds
         }
 
-        if let netT = tree["network"]?.tableValue {
-            cfg.network.enabled = netT["enabled"]?.boolValue ?? cfg.network.enabled
-            cfg.network.allowCellular = netT["allow_cellular"]?.boolValue ?? cfg.network.allowCellular
-            cfg.network.preferUSBTether = netT["prefer_usb_tether"]?.boolValue ?? cfg.network.preferUSBTether
-            cfg.network.allowWiFiHotspot = netT["allow_wifi_hotspot"]?.boolValue ?? cfg.network.allowWiFiHotspot
-            cfg.network.allowBluetoothPAN = netT["allow_bluetooth_pan"]?.boolValue ?? cfg.network.allowBluetoothPAN
-            cfg.network.restoreServiceOrder = netT["restore_service_order"]?.boolValue ?? cfg.network.restoreServiceOrder
-            cfg.network.keepTetherUntilTurnDone = netT["keep_tether_until_turn_done"]?.boolValue ?? cfg.network.keepTetherUntilTurnDone
-            cfg.network.maxCellularMBPerSession = netT["max_cellular_mb_per_session"]?.intValue ?? cfg.network.maxCellularMBPerSession
-            if let hotspotsArr = netT["hotspots"]?.arrayValue {
-                cfg.network.hotspots = hotspotsArr.compactMap { entry in
-                    guard let t = entry.tableValue, let ssid = t["ssid"]?.stringValue else { return nil }
-                    return Config.Hotspot(ssid: ssid, keychainAccount: t["keychain_account"]?.stringValue)
-                }
-            }
-            if let probes = netT["probe_endpoints"]?.arrayValue {
-                cfg.network.probeEndpoints = probes.compactMap { $0.stringValue }
-            }
-        }
-
         if let agentsT = tree["agents"]?.tableValue {
             if let codexT = agentsT["codex"]?.tableValue {
                 cfg.codex.enabled = codexT["enabled"]?.boolValue ?? cfg.codex.enabled
                 cfg.codex.hookMode = codexT["hook_mode"]?.stringValue ?? cfg.codex.hookMode
-                cfg.codex.proxyMode = codexT["proxy_mode"]?.stringValue ?? cfg.codex.proxyMode
                 cfg.codex.hookTimeoutSeconds = codexT["hook_timeout_seconds"]?.intValue ?? cfg.codex.hookTimeoutSeconds
             }
             if let claudeT = agentsT["claude"]?.tableValue {
                 cfg.claude.enabled = claudeT["enabled"]?.boolValue ?? cfg.claude.enabled
                 cfg.claude.hookMode = claudeT["hook_mode"]?.stringValue ?? cfg.claude.hookMode
-                cfg.claude.proxyMode = claudeT["proxy_mode"]?.stringValue ?? cfg.claude.proxyMode
                 cfg.claude.hookTimeoutSeconds = claudeT["hook_timeout_seconds"]?.intValue ?? cfg.claude.hookTimeoutSeconds
             }
-        }
-
-        if let premiumT = tree["premium"]?.tableValue {
-            cfg.premium.enabled = premiumT["enabled"]?.boolValue ?? cfg.premium.enabled
-            cfg.premium.relayURL = premiumT["relay_url"]?.stringValue ?? cfg.premium.relayURL
-            cfg.premium.mode = premiumT["mode"]?.stringValue ?? cfg.premium.mode
         }
 
         return cfg

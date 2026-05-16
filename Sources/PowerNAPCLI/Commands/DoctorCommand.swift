@@ -13,9 +13,6 @@ struct DoctorCommand: AsyncParsableCommand {
     @Flag(name: .long, help: "Temporarily enable and immediately clear the clamshell override to verify the IOKit path.")
     var hardwareSpike: Bool = false
 
-    @Flag(name: .long, help: "Skip outbound HTTPS reachability probes.")
-    var skipNetworkProbes: Bool = false
-
     @Option(name: .long, help: "Timeout in seconds for subprocess checks.")
     var checkTimeoutSeconds: Double = 5
 
@@ -60,11 +57,15 @@ struct DoctorCommand: AsyncParsableCommand {
 
         let daemonPlist = "\(NSHomeDirectory())/Library/LaunchAgents/dev.powernap.daemon.plist"
         let watchdogPlist = "\(NSHomeDirectory())/Library/LaunchAgents/dev.powernap.watchdog.plist"
+        let menuPlist = "\(NSHomeDirectory())/Library/LaunchAgents/dev.powernap.menu.plist"
         check("daemon LaunchAgent", ok: fm.fileExists(atPath: daemonPlist), detail: daemonPlist, warnOnly: true)
         check("watchdog LaunchAgent", ok: fm.fileExists(atPath: watchdogPlist), detail: watchdogPlist, warnOnly: true)
+        check("menu LaunchAgent", ok: fm.fileExists(atPath: menuPlist), detail: menuPlist, warnOnly: true)
 
         let hookPath = HookBinaryResolver.resolve()
         check("powernap-hook executable", ok: fm.isExecutableFile(atPath: hookPath), detail: hookPath)
+        let menu = findExecutable("powernap-menu", env: env)
+        check("powernap-menu executable", ok: menu != nil, detail: menu ?? "not found", warnOnly: true)
 
         let config: Config
         do {
@@ -158,50 +159,6 @@ struct DoctorCommand: AsyncParsableCommand {
             check("Claude hook stream flag", ok: helpResult.status == 0 && help.contains("--include-hook-events"), detail: helpResult.status == 124 ? helpResult.stderr : "--include-hook-events support", warnOnly: true)
         }
 
-        do {
-            let order = NetworkServiceOrder()
-            let services = try order.listServices()
-            let names = services.map(\.name)
-            check("network services", ok: !services.isEmpty, detail: names.joined(separator: ", "))
-            let usb = order.findUSBTether(services)
-            check("iPhone USB service", ok: usb != nil, detail: usb ?? "not present", warnOnly: true)
-            let wifi = services.first(where: { order.isWiFiService($0) })
-            check("Wi-Fi service", ok: wifi != nil, detail: wifi.map { "\($0.name) \($0.device ?? "")" } ?? "not present", warnOnly: true)
-            let bluetooth = order.findBluetoothPAN(services)
-            if config.network.allowBluetoothPAN {
-                check("Bluetooth PAN service", ok: bluetooth != nil, detail: bluetooth ?? "not present", warnOnly: true)
-            }
-
-            let serviceOrder = try order.currentOrder()
-            check("network service order snapshot", ok: !serviceOrder.isEmpty, detail: serviceOrder.joined(separator: " > "))
-
-            if usb == nil && config.network.hotspots.isEmpty && !(config.network.allowBluetoothPAN && bluetooth != nil) {
-                report(.warning, "coffee-shop-to-car network fallback", detail: "no iPhone USB service, configured hotspot, or Bluetooth PAN service")
-            } else {
-                let fallback = usb != nil
-                    ? "iPhone USB available"
-                    : ((config.network.allowBluetoothPAN && bluetooth != nil) ? "Bluetooth PAN available" : "configured hotspot present")
-                report(.ok, "coffee-shop-to-car network fallback", detail: fallback)
-            }
-        } catch {
-            report(.failure, "network service inspection", detail: "\(error)")
-        }
-
-        let route = runProcess("/sbin/route", ["-n", "get", "default"], timeoutSeconds: checkTimeoutSeconds)
-        check("default route", ok: route.status == 0, detail: firstUsefulLine(route.stdout) ?? route.stderr, warnOnly: true)
-
-        if config.network.enabled && !skipNetworkProbes {
-            let probe = NetworkProbe(timeout: 3)
-            let results = await probe.probeAll(endpoints: config.network.probeEndpoints)
-            let okEndpoints = results.compactMap { endpoint, result -> String? in
-                if case .ok = result { return endpoint }
-                return nil
-            }
-            check("agent HTTPS probes", ok: !okEndpoints.isEmpty, detail: okEndpoints.isEmpty ? "no endpoint reachable" : okEndpoints.joined(separator: ", "), warnOnly: true)
-        } else if skipNetworkProbes {
-            report(.warning, "agent HTTPS probes", detail: "skipped")
-        }
-
         print("summary: \(failures) failure(s), \(warnings) warning(s)")
 
         if failures > 0 {
@@ -271,9 +228,4 @@ struct DoctorCommand: AsyncParsableCommand {
         }
     }
 
-    private func firstUsefulLine(_ text: String) -> String? {
-        text.split(separator: "\n")
-            .map { String($0).trimmingCharacters(in: .whitespaces) }
-            .first(where: { !$0.isEmpty })
-    }
 }

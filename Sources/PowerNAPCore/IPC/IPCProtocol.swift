@@ -12,10 +12,6 @@ public struct IPCRequest: Codable, Sendable {
         case restore(reason: String?)
         case listLeases
         case listSessions
-        case networkStatus
-        case networkPreferUSB
-        case networkPreferBluetoothPAN
-        case networkRestore
         case ping
     }
 
@@ -46,7 +42,6 @@ public struct IPCResponse: Codable, Sendable {
         case status(StatusPayload)
         case leases([LeasePayload])
         case sessions([SessionPayload])
-        case network(NetworkStatusPayload)
     }
 
     public var version: UInt32
@@ -109,38 +104,21 @@ public struct StatusPayload: Codable, Sendable {
         }
     }
 
-    public struct NetworkInfo: Codable, Sendable {
-        public var primary: String?
-        public var health: String
-        public var route: String?
-        public var lastProbe: String?
-
-        public init(primary: String?, health: String, route: String?, lastProbe: String?) {
-            self.primary = primary
-            self.health = health
-            self.route = route
-            self.lastProbe = lastProbe
-        }
-    }
-
     public var daemonRunning: Bool
     public var sessions: [ActiveSession]
     public var leases: [LeaseInfo]
     public var safety: SafetyInfo
-    public var network: NetworkInfo
 
     public init(
         daemonRunning: Bool,
         sessions: [ActiveSession],
         leases: [LeaseInfo],
-        safety: SafetyInfo,
-        network: NetworkInfo
+        safety: SafetyInfo
     ) {
         self.daemonRunning = daemonRunning
         self.sessions = sessions
         self.leases = leases
         self.safety = safety
-        self.network = network
     }
 }
 
@@ -187,53 +165,5 @@ public struct SessionPayload: Codable, Sendable {
         self.lastEventAt = lastEventAt
         self.phase = phase
         self.exitStatus = exitStatus
-    }
-}
-
-public struct NetworkStatusPayload: Codable, Sendable {
-    public struct Service: Codable, Sendable {
-        public var name: String
-        public var interface: String?
-        public var active: Bool
-        public var enabled: Bool
-
-        public init(name: String, interface: String?, active: Bool, enabled: Bool) {
-            self.name = name
-            self.interface = interface
-            self.active = active
-            self.enabled = enabled
-        }
-    }
-
-    public var primaryInterface: String?
-    public var primaryService: String?
-    public var path: String
-    public var services: [Service]
-    public var hotspotConfigured: Bool
-    public var usbTetherPresent: Bool
-    public var probeResults: [String: String]
-    public var serviceOrderSnapshot: [String]?
-    public var failoverActive: Bool
-
-    public init(
-        primaryInterface: String?,
-        primaryService: String?,
-        path: String,
-        services: [Service],
-        hotspotConfigured: Bool,
-        usbTetherPresent: Bool,
-        probeResults: [String: String],
-        serviceOrderSnapshot: [String]?,
-        failoverActive: Bool
-    ) {
-        self.primaryInterface = primaryInterface
-        self.primaryService = primaryService
-        self.path = path
-        self.services = services
-        self.hotspotConfigured = hotspotConfigured
-        self.usbTetherPresent = usbTetherPresent
-        self.probeResults = probeResults
-        self.serviceOrderSnapshot = serviceOrderSnapshot
-        self.failoverActive = failoverActive
     }
 }

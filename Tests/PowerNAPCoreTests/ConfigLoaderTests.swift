@@ -11,11 +11,8 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(cfg.safety.criticalBatteryPercent, 10)
         XCTAssertEqual(cfg.safety.watchdogHeartbeatSeconds, 60)
         XCTAssertEqual(cfg.safety.watchdogReleaseAfterSeconds, 180)
-        XCTAssertTrue(cfg.network.enabled)
-        XCTAssertTrue(cfg.network.preferUSBTether)
         XCTAssertEqual(cfg.codex.hookMode, "global-inert")
         XCTAssertEqual(cfg.claude.hookMode, "per-run-settings")
-        XCTAssertFalse(cfg.premium.enabled)
     }
 
     func testOverrideBatteryThresholds() throws {
@@ -28,39 +25,26 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(cfg.safety.criticalBatteryPercent, 15)
     }
 
-    func testHotspotsArrayParses() throws {
+    func testAgentOverridesParse() throws {
         let cfg = try ConfigLoader.parse("""
-        [[network.hotspots]]
-        ssid = "Home"
-        keychain_account = "PowerNAP Hotspot Home"
+        [agents.codex]
+        enabled = false
+        hook_timeout_seconds = 7
 
-        [[network.hotspots]]
-        ssid = "Office"
+        [agents.claude]
+        hook_mode = "custom-settings"
         """)
-        XCTAssertEqual(cfg.network.hotspots.count, 2)
-        XCTAssertEqual(cfg.network.hotspots[0].ssid, "Home")
-        XCTAssertEqual(cfg.network.hotspots[0].keychainAccount, "PowerNAP Hotspot Home")
-        XCTAssertEqual(cfg.network.hotspots[1].ssid, "Office")
-    }
-
-    func testProbeEndpointsParse() throws {
-        let cfg = try ConfigLoader.parse("""
-        [network]
-        probe_endpoints = ["https://example.com"]
-        """)
-        XCTAssertEqual(cfg.network.probeEndpoints, ["https://example.com"])
+        XCTAssertFalse(cfg.codex.enabled)
+        XCTAssertEqual(cfg.codex.hookTimeoutSeconds, 7)
+        XCTAssertEqual(cfg.claude.hookMode, "custom-settings")
     }
 
     func testDisabledFeaturesRespected() throws {
         let cfg = try ConfigLoader.parse("""
         [power]
         closed_lid_enabled = false
-
-        [network]
-        enabled = false
         """)
         XCTAssertFalse(cfg.power.closedLidEnabled)
-        XCTAssertFalse(cfg.network.enabled)
     }
 
     func testPersistenceRoundTrip() throws {

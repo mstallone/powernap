@@ -70,12 +70,6 @@ public final class StateStore {
                 CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id);
                 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(timestamp);
 
-                CREATE TABLE IF NOT EXISTS network_snapshots(
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    taken_at REAL NOT NULL,
-                    service_order TEXT NOT NULL
-                );
-
                 CREATE TABLE IF NOT EXISTS clamshell_state(
                     id INTEGER PRIMARY KEY CHECK (id = 1),
                     active INTEGER NOT NULL,
@@ -266,28 +260,6 @@ public final class StateStore {
             try db.query("SELECT active FROM clamshell_state WHERE id = 1;") { row in
                 row.bool(0)
             }.first ?? false
-        }
-    }
-
-    public func saveNetworkSnapshot(serviceOrder: [String]) throws {
-        try queue.sync {
-            let data = try JSONEncoder().encode(serviceOrder)
-            let json = String(data: data, encoding: .utf8) ?? "[]"
-            try db.execute("""
-            INSERT INTO network_snapshots(taken_at, service_order) VALUES(?, ?);
-            """, [Date().timeIntervalSince1970, json])
-        }
-    }
-
-    public func latestNetworkSnapshot() throws -> [String]? {
-        try queue.sync {
-            let rows = try db.query("""
-            SELECT service_order FROM network_snapshots ORDER BY taken_at DESC LIMIT 1;
-            """) { row in
-                row.string(0) ?? "[]"
-            }
-            guard let json = rows.first, let data = json.data(using: .utf8) else { return nil }
-            return try JSONDecoder().decode([String].self, from: data)
         }
     }
 

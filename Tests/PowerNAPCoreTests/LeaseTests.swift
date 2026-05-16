@@ -27,7 +27,7 @@ final class LeaseTests: XCTestCase {
     }
 
     func testOptionalRunIdPreserved() {
-        let l = Lease(runId: nil, leaseType: .networkFailover, expiresAt: Date().addingTimeInterval(60))
+        let l = Lease(runId: nil, leaseType: .idleSleep, expiresAt: Date().addingTimeInterval(60))
         XCTAssertNil(l.runId)
     }
 
@@ -60,8 +60,6 @@ final class LeaseTests: XCTestCase {
     func testAllLeaseTypesHaveStableRawValues() {
         XCTAssertEqual(LeaseType.idleSleep.rawValue, "idle_sleep")
         XCTAssertEqual(LeaseType.clamshellSleep.rawValue, "clamshell_sleep")
-        XCTAssertEqual(LeaseType.networkFailover.rawValue, "network_failover")
-        XCTAssertEqual(LeaseType.localProxy.rawValue, "local_proxy")
     }
 
     func testAllReleaseReasonsStable() {

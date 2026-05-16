@@ -48,9 +48,5 @@ struct RestoreCommand: AsyncParsableCommand {
             try store.releaseLease(id: lease.id, reason: .manualRestore)
         }
         try store.setClamshellActive(false, pid: nil)
-
-        if let snapshot = try store.latestNetworkSnapshot() {
-            try? NetworkServiceOrder(logger: logger).restoreFromSnapshot(snapshot)
-        }
     }
 }

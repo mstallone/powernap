@@ -18,11 +18,13 @@ fi
 
 PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.daemon.plist"
 WATCHDOG_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.watchdog.plist"
+MENU_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.menu.plist"
 
 BINARIES=(
     "powernap"
     "powernapd"
     "powernap-hook"
+    "powernap-menu"
     "powernap-watchdog"
 )
 
@@ -67,7 +69,7 @@ for binary in "${BINARIES[@]}"; do
 done
 
 if [[ "$(id -u)" -eq 0 && "$TARGET_UID" -ne 0 ]]; then
-    rm -f /var/root/Library/LaunchAgents/dev.powernap.daemon.plist /var/root/Library/LaunchAgents/dev.powernap.watchdog.plist 2>/dev/null || true
+    rm -f /var/root/Library/LaunchAgents/dev.powernap.daemon.plist /var/root/Library/LaunchAgents/dev.powernap.watchdog.plist /var/root/Library/LaunchAgents/dev.powernap.menu.plist 2>/dev/null || true
     sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" PATH="$PATH" "$INSTALL_DIR/powernap" install
 else
     "$INSTALL_DIR/powernap" install
@@ -81,6 +83,7 @@ printf 'Installed for user: %s (uid %s)\n' "$TARGET_USER" "$TARGET_UID"
 printf 'LaunchAgent plist:\n'
 printf '  %s\n' "$PLIST_DST"
 printf '  %s\n' "$WATCHDOG_PLIST_DST"
+printf '  %s\n' "$MENU_PLIST_DST"
 printf 'Next steps:\n'
 printf '  powernap hooks install\n'
 printf '  powernap status\n'

@@ -60,6 +60,5 @@ struct StatusCommand: AsyncParsableCommand {
             print("  - \(l.leaseType) held=\(l.held)\(exp)")
         }
         print("safety: thermal=\(payload.safety.thermalState) battery=\(payload.safety.batteryPercent.map(String.init) ?? "?")")
-        print("network: \(payload.network.primary ?? "?") health=\(payload.network.health)")
     }
 }

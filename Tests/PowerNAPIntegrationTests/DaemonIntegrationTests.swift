@@ -180,12 +180,6 @@ final class DaemonIntegrationTests: XCTestCase {
         }
         XCTAssertTrue(finalPayload.sessions.isEmpty, "session should be closed after SessionEnd")
 
-        let networkResp = try send(.networkStatus)
-        if case .network = networkResp.body {
-        } else {
-            XCTFail("expected .network response")
-        }
-
         let restoreResp = try send(.restore(reason: "integration-test"))
         assertAck(restoreResp)
     }
@@ -304,32 +298,15 @@ final class DaemonIntegrationTests: XCTestCase {
     active_lease_ttl_seconds = 1800
     waiting_grace_seconds = 20
 
-    [network]
-    enabled = false
-    allow_cellular = false
-    prefer_usb_tether = false
-    allow_wifi_hotspot = false
-    allow_bluetooth_pan = false
-    restore_service_order = false
-    keep_tether_until_turn_done = false
-    max_cellular_mb_per_session = 0
-
     [agents.codex]
     enabled = true
     hook_mode = "global-inert"
-    proxy_mode = "env"
     hook_timeout_seconds = 2
 
     [agents.claude]
     enabled = true
     hook_mode = "per-run-settings"
-    proxy_mode = "env"
     hook_timeout_seconds = 2
-
-    [premium]
-    enabled = false
-    relay_url = ""
-    mode = "stable-egress"
 
     """
 }

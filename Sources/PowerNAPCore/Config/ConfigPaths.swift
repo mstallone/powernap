@@ -75,10 +75,6 @@ public enum ConfigPaths {
         return dir.appendingPathComponent("config.toml").path
     }
 
-    public static var networkOrderSnapshotPath: String {
-        appSupportDir.appendingPathComponent("network.snapshot.json").path
-    }
-
     public static var logFilePath: String {
         logsDir.appendingPathComponent("powernapd.log").path
     }
