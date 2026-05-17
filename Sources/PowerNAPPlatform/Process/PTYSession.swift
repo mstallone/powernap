@@ -99,7 +99,7 @@ public final class PTYSession {
         self.pid = newPID
         self.masterFD = master
         self.isRunning = true
-        logger.info("spawned agent", metadata: ["pid": "\(newPID)", "exe": "\(options.executable)"])
+        logger.debug("spawned agent", metadata: ["pid": "\(newPID)", "exe": "\(options.executable)"])
     }
 
     public func makeStdinRaw() throws {
@@ -194,6 +194,9 @@ public final class PTYRelay {
     private var running: Bool = false
     private let stdinQueue = DispatchQueue(label: "dev.powernap.pty.stdin", qos: .userInteractive)
     private let stdoutQueue = DispatchQueue(label: "dev.powernap.pty.stdout", qos: .userInteractive)
+    private let stdoutGroup = DispatchGroup()
+    private let outputLock = NSLock()
+    private var lastOutputByte: UInt8?
     private var signalSources: [DispatchSourceSignal] = []
 
     public init(pty: PTYSession, logger: Logger? = nil) {
@@ -208,9 +211,14 @@ public final class PTYRelay {
             guard let self else { return }
             PTYRelay.pump(from: 0, to: master, running: { self.running })
         }
+        let stdoutGroup = self.stdoutGroup
+        stdoutGroup.enter()
         stdoutQueue.async { [weak self] in
+            defer { stdoutGroup.leave() }
             guard let self else { return }
-            PTYRelay.pump(from: master, to: 1, running: { self.running })
+            PTYRelay.pump(from: master, to: 1, running: { true }) { byte in
+                self.recordLastOutputByte(byte)
+            }
         }
         setupSignalHandlers()
     }
@@ -221,7 +229,29 @@ public final class PTYRelay {
         signalSources.removeAll()
     }
 
-    private static func pump(from src: Int32, to dst: Int32, running: @escaping () -> Bool) {
+    public func waitForOutputDrain(timeoutSeconds: TimeInterval) -> Bool {
+        stdoutGroup.wait(timeout: .now() + timeoutSeconds) == .success
+    }
+
+    public var outputNeedsTrailingNewline: Bool {
+        outputLock.lock()
+        defer { outputLock.unlock() }
+        guard let lastOutputByte else { return false }
+        return lastOutputByte != UInt8(ascii: "\n") && lastOutputByte != UInt8(ascii: "\r")
+    }
+
+    private func recordLastOutputByte(_ byte: UInt8) {
+        outputLock.lock()
+        lastOutputByte = byte
+        outputLock.unlock()
+    }
+
+    private static func pump(
+        from src: Int32,
+        to dst: Int32,
+        running: @escaping () -> Bool,
+        lastByteObserver: ((UInt8) -> Void)? = nil
+    ) {
         let bufSize = 4096
         let buf = UnsafeMutablePointer<UInt8>.allocate(capacity: bufSize)
         defer { buf.deallocate() }
@@ -238,7 +268,10 @@ public final class PTYRelay {
                     if errno == EINTR { continue }
                     break
                 }
-                offset += written
+                if written == 0 { break }
+                let writtenCount = Int(written)
+                lastByteObserver?(buf[offset + writtenCount - 1])
+                offset += writtenCount
             }
         }
     }

@@ -104,6 +104,12 @@ Codex:
 powernap codex
 ```
 
+To launch protected agents without typing the `powernap` prefix, add the shell aliases to your current shell:
+
+```bash
+eval "$(powernap shell-init)"
+```
+
 Claude Code:
 
 ```bash

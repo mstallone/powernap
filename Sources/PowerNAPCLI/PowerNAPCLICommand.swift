@@ -19,6 +19,7 @@ struct PowerNAPCLI: AsyncParsableCommand {
             LogsCommand.self,
             LeasesCommand.self,
             ConfigCommand.self,
+            ShellInitCommand.self,
             InstallCommand.self,
             UninstallCommand.self
         ]

@@ -54,6 +54,12 @@ Run Codex under PowerNAP:
 powernap codex
 ```
 
+Optional shell aliases let you type `codex` and `claude` directly while still running through PowerNAP:
+
+```bash
+eval "$(powernap shell-init)"
+```
+
 Run Claude Code under PowerNAP:
 
 ```bash

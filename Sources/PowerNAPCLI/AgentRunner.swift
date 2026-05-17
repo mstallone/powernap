@@ -142,8 +142,21 @@ struct AgentRunner {
         relay.start()
         let status = pty.wait()
         relay.stop()
+        let outputDrained = relay.waitForOutputDrain(timeoutSeconds: 1)
+        let needsTrailingNewline = outputDrained && relay.outputNeedsTrailingNewline
         pty.close()
+        if needsTrailingNewline {
+            writeTerminalNewline()
+        }
         return status
+    }
+
+    private func writeTerminalNewline() {
+        guard isatty(1) != 0 else { return }
+        let newline = "\r\n"
+        _ = newline.withCString { ptr in
+            Darwin.write(1, ptr, strlen(ptr))
+        }
     }
 
     private func runInline(executable: String, arguments: [String], environment: [String: String]) throws -> Int32 {
