@@ -93,9 +93,9 @@ final class CodexSessionFileMonitor {
                 guard !rejectedPaths.contains(path) else { continue }
 
                 let values = try? url.resourceValues(forKeys: keys)
-                let createdAt = values?.creationDate ?? .distantPast
+                let createdAt = values?.creationDate
                 let modifiedAt = values?.contentModificationDate ?? .distantPast
-                if createdAt >= threshold || modifiedAt >= threshold {
+                if createdAt.map({ $0 >= threshold }) ?? (modifiedAt >= threshold) {
                     urls.append(url)
                 }
             }

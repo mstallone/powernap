@@ -67,7 +67,11 @@ struct AgentRunner {
             throw AgentRunnerError.daemonUnavailable(error)
         }
 
-        let codexMonitor = makeCodexSessionFileMonitor(runId: runId, token: token)
+        let codexStartupGuard = makeCodexStartupLeaseGuard(runId: runId, token: token)
+        codexStartupGuard?.start()
+        defer { codexStartupGuard?.stop() }
+
+        let codexMonitor = makeCodexSessionFileMonitor(runId: runId, token: token, startupGuard: codexStartupGuard)
         codexMonitor?.start()
         defer { codexMonitor?.stop() }
 
@@ -85,12 +89,32 @@ struct AgentRunner {
         return status
     }
 
-    private func makeCodexSessionFileMonitor(runId: String, token: String) -> CodexSessionFileMonitor? {
+    private func makeCodexStartupLeaseGuard(runId: String, token: String) -> CodexStartupLeaseGuard? {
+        guard agent == "codex" else { return nil }
+        return CodexStartupLeaseGuard(timeoutSeconds: 30, logger: logger) {
+            do {
+                try sendSyntheticEvent(runId: runId, token: token, event: "Stop")
+            } catch {
+                logger.debug("codex startup lease release failed", metadata: [
+                    "error": .string(String(describing: error))
+                ])
+            }
+        }
+    }
+
+    private func makeCodexSessionFileMonitor(
+        runId: String,
+        token: String,
+        startupGuard: CodexStartupLeaseGuard?
+    ) -> CodexSessionFileMonitor? {
         guard agent == "codex" else { return nil }
         return CodexSessionFileMonitor(
             workingDirectory: FileManager.default.currentDirectoryPath,
             logger: logger
         ) { event in
+            if event == "UserPromptSubmit" {
+                startupGuard?.markTurnStarted()
+            }
             do {
                 try sendSyntheticEvent(runId: runId, token: token, event: event)
             } catch {

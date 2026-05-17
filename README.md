@@ -66,7 +66,7 @@ Protect a generic process for its lifetime:
 powernap run -- ./long-running-agent
 ```
 
-Codex and Claude wrappers acquire protection immediately, then agent hooks refine the state when a turn waits, idles, finishes, or exits. Codex also has a local transcript fallback, so completed turns release leases even if the runtime hook is skipped. Generic mode treats the process lifetime as active because generic commands do not expose agent-native waiting or permission hooks.
+Codex and Claude wrappers acquire protection immediately, then agent hooks refine the state when a turn waits, idles, finishes, or exits. Codex startup protection expires after a short grace period if no prompt has started yet, and the local transcript fallback reacquires protection on `task_started` and releases it on `task_complete`. Generic mode treats the process lifetime as active because generic commands do not expose agent-native waiting or permission hooks.
 
 ## Menu Bar App
 
