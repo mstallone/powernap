@@ -29,7 +29,7 @@ The easiest install path is:
 ./scripts/install.sh
 ```
 
-The script builds release artifacts, copies all five binaries to `/usr/local/bin`, and runs:
+The script builds release artifacts, copies all five binaries to `/usr/local/bin`, adds protected `codex` and `claude` aliases to `~/.zshrc`, and runs:
 
 ```bash
 powernap install
@@ -101,19 +101,19 @@ The menu bar icon uses a bolt while PowerNAP is blocking sleep, a Zzz glyph when
 Codex:
 
 ```bash
-powernap codex
+codex
 ```
 
-To launch protected agents without typing the `powernap` prefix, add the shell aliases to your current shell:
+After install, open a new shell or load the aliases into the current shell:
 
 ```bash
-eval "$(powernap shell-init)"
+source ~/.zshrc
 ```
 
 Claude Code:
 
 ```bash
-powernap claude
+claude
 ```
 
 Generic command:

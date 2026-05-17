@@ -19,6 +19,8 @@ WATCHDOG_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.watchdog.plis
 MENU_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.menu.plist"
 CODEX_HOOKS="$TARGET_HOME/.codex/hooks.json"
 CODEX_CONFIG="$TARGET_HOME/.codex/config.toml"
+ZSHRC_DST="$TARGET_HOME/.zshrc"
+SHELL_INIT_LINE='eval "$(powernap shell-init)"'
 
 BINARIES=(
     "powernap"
@@ -62,6 +64,24 @@ fi
 rm -f "$PLIST_DST"
 rm -f "$WATCHDOG_PLIST_DST"
 rm -f "$MENU_PLIST_DST"
+
+if [[ -f "$ZSHRC_DST" ]] && /usr/bin/grep -Fqx "$SHELL_INIT_LINE" "$ZSHRC_DST"; then
+    if [[ "$(id -u)" -eq 0 && "$TARGET_UID" -ne 0 ]]; then
+        sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" /bin/bash -c '
+            set -euo pipefail
+            rc="$1"
+            line="$2"
+            tmp="$rc.powernap.tmp.$$"
+            /usr/bin/grep -Fvx "$line" "$rc" > "$tmp" || true
+            /bin/mv "$tmp" "$rc"
+        ' _ "$ZSHRC_DST" "$SHELL_INIT_LINE"
+    else
+        tmp="$ZSHRC_DST.powernap.tmp.$$"
+        /usr/bin/grep -Fvx "$SHELL_INIT_LINE" "$ZSHRC_DST" > "$tmp" || true
+        /bin/mv "$tmp" "$ZSHRC_DST"
+    fi
+    removed_paths+=("$ZSHRC_DST (shell init line)")
+fi
 
 if [[ -d "$INSTALL_DIR" && ! -w "$INSTALL_DIR" ]]; then
     RM_CMD=(sudo rm -f)

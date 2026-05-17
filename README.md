@@ -38,7 +38,7 @@ powernap doctor
 powernap doctor --hardware-spike
 ```
 
-`scripts/install.sh` builds release binaries, copies them to `/usr/local/bin`, and installs three per-user LaunchAgents:
+`scripts/install.sh` builds release binaries, copies them to `/usr/local/bin`, installs shell aliases in `~/.zshrc`, and installs three per-user LaunchAgents:
 
 - `dev.powernap.daemon`
 - `dev.powernap.watchdog`
@@ -48,22 +48,22 @@ The hardware spike briefly enables and clears the closed-lid override. Run it be
 
 ## Use
 
-Run Codex under PowerNAP:
+After opening a new shell, run Codex under PowerNAP:
 
 ```bash
-powernap codex
+codex
 ```
 
-Optional shell aliases let you type `codex` and `claude` directly while still running through PowerNAP:
+For the current shell, load the aliases immediately:
 
 ```bash
-eval "$(powernap shell-init)"
+source ~/.zshrc
 ```
 
 Run Claude Code under PowerNAP:
 
 ```bash
-powernap claude
+claude
 ```
 
 Protect a generic process for its lifetime:

@@ -32,6 +32,7 @@ Then it removes:
 - `~/Library/LaunchAgents/dev.powernap.daemon.plist`
 - `~/Library/LaunchAgents/dev.powernap.watchdog.plist`
 - `~/Library/LaunchAgents/dev.powernap.menu.plist`
+- the exact PowerNAP shell alias line from `~/.zshrc`
 
 ## Remove State And Logs
 

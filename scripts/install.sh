@@ -19,6 +19,8 @@ fi
 PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.daemon.plist"
 WATCHDOG_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.watchdog.plist"
 MENU_PLIST_DST="$TARGET_HOME/Library/LaunchAgents/dev.powernap.menu.plist"
+ZSHRC_DST="$TARGET_HOME/.zshrc"
+SHELL_INIT_LINE='eval "$(powernap shell-init)"'
 
 BINARIES=(
     "powernap"
@@ -85,6 +87,23 @@ else
     "$INSTALL_DIR/powernap" install
 fi
 
+if [[ "$(id -u)" -eq 0 && "$TARGET_UID" -ne 0 ]]; then
+    sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" /bin/bash -c '
+        set -euo pipefail
+        rc="$1"
+        line="$2"
+        touch "$rc"
+        if ! /usr/bin/grep -Fqx "$line" "$rc"; then
+            printf "\n%s\n" "$line" >> "$rc"
+        fi
+    ' _ "$ZSHRC_DST" "$SHELL_INIT_LINE"
+else
+    touch "$ZSHRC_DST"
+    if ! /usr/bin/grep -Fqx "$SHELL_INIT_LINE" "$ZSHRC_DST"; then
+        printf '\n%s\n' "$SHELL_INIT_LINE" >> "$ZSHRC_DST"
+    fi
+fi
+
 printf 'Installed PowerNAP binaries:\n'
 for path in "${installed_paths[@]}"; do
     printf '  %s\n' "$path"
@@ -94,6 +113,9 @@ printf 'LaunchAgent plist:\n'
 printf '  %s\n' "$PLIST_DST"
 printf '  %s\n' "$WATCHDOG_PLIST_DST"
 printf '  %s\n' "$MENU_PLIST_DST"
+printf 'Shell init:\n'
+printf '  %s\n' "$ZSHRC_DST"
 printf 'Next steps:\n'
+printf '  restart your shell or run: source ~/.zshrc\n'
 printf '  powernap hooks install\n'
 printf '  powernap status\n'
