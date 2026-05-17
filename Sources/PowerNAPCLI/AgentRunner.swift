@@ -153,7 +153,7 @@ struct AgentRunner {
 
     private func writeTerminalNewline() {
         guard isatty(1) != 0 else { return }
-        let newline = "\r\n"
+        let newline = "\n"
         _ = newline.withCString { ptr in
             Darwin.write(1, ptr, strlen(ptr))
         }

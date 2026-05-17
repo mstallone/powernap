@@ -236,8 +236,12 @@ public final class PTYRelay {
     public var outputNeedsTrailingNewline: Bool {
         outputLock.lock()
         defer { outputLock.unlock() }
+        return Self.outputNeedsTrailingNewline(after: lastOutputByte)
+    }
+
+    static func outputNeedsTrailingNewline(after lastOutputByte: UInt8?) -> Bool {
         guard let lastOutputByte else { return false }
-        return lastOutputByte != UInt8(ascii: "\n") && lastOutputByte != UInt8(ascii: "\r")
+        return lastOutputByte != UInt8(ascii: "\n")
     }
 
     private func recordLastOutputByte(_ byte: UInt8) {

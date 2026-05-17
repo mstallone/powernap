@@ -76,6 +76,13 @@ final class PTYSessionTests: XCTestCase {
         _ = session.wait()
         session.close()
     }
+
+    func testOutputNewlineDetectionTreatsOnlyLineFeedAsComplete() {
+        XCTAssertFalse(PTYRelay.outputNeedsTrailingNewline(after: nil))
+        XCTAssertFalse(PTYRelay.outputNeedsTrailingNewline(after: UInt8(ascii: "\n")))
+        XCTAssertTrue(PTYRelay.outputNeedsTrailingNewline(after: UInt8(ascii: "\r")))
+        XCTAssertTrue(PTYRelay.outputNeedsTrailingNewline(after: UInt8(ascii: " ")))
+    }
 }
 
 enum FDSetHelper {
