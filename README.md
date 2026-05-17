@@ -73,7 +73,7 @@ Codex and Claude wrappers acquire protection immediately, then agent hooks refin
 `powernap-menu` starts automatically after install. It shows:
 
 - a bolt icon when PowerNAP is blocking sleep;
-- a moon icon when normal sleep is allowed;
+- a Zzz icon when normal sleep is allowed;
 - a question-mark icon when the daemon cannot be reached;
 - a count beside the icon for active protected agent threads.
 

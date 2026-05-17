@@ -94,7 +94,7 @@ launchctl print gui/$(id -u)/dev.powernap.watchdog
 launchctl print gui/$(id -u)/dev.powernap.menu
 ```
 
-The menu bar icon uses a bolt while PowerNAP is blocking sleep, a moon when normal sleep is allowed, and a question mark when daemon status is unavailable. The number beside the icon is the count of active protected agent threads keeping the Mac awake.
+The menu bar icon uses a bolt while PowerNAP is blocking sleep, a Zzz glyph when normal sleep is allowed, and a question mark when daemon status is unavailable. The number beside the icon is the count of active protected agent threads keeping the Mac awake.
 
 ## Run
 

@@ -58,7 +58,7 @@ final class PowerNAPMenuApp: NSObject, NSApplicationDelegate {
             symbolName = "bolt.circle.fill"
             description = "PowerNAP is keeping this Mac awake"
         case .allowed:
-            symbolName = "moon.fill"
+            symbolName = "zzz"
             description = "PowerNAP allows normal sleep"
         case .unknown:
             symbolName = "questionmark.circle"
