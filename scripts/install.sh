@@ -56,16 +56,26 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
     fi
 fi
 
-if [[ -w "$INSTALL_DIR" ]]; then
-    COPY_CMD=(cp)
-else
-    COPY_CMD=(sudo cp)
-fi
-
 installed_paths=()
 for binary in "${BINARIES[@]}"; do
-    "${COPY_CMD[@]}" "$BUILD_DIR/$binary" "$INSTALL_DIR/$binary"
-    installed_paths+=("$INSTALL_DIR/$binary")
+    src="$BUILD_DIR/$binary"
+    dst="$INSTALL_DIR/$binary"
+    tmp="$INSTALL_DIR/.$binary.tmp.$$"
+
+    # Replace atomically instead of overwriting in place. macOS can keep code
+    # signing state attached to an overwritten vnode and then kill the binary
+    # on exec even when the new bytes validate.
+    if [[ -w "$INSTALL_DIR" ]]; then
+        rm -f "$tmp"
+        /usr/bin/install -m 755 "$src" "$tmp"
+        /bin/mv -f "$tmp" "$dst"
+    else
+        sudo rm -f "$tmp"
+        sudo /usr/bin/install -m 755 "$src" "$tmp"
+        sudo /bin/mv -f "$tmp" "$dst"
+    fi
+
+    installed_paths+=("$dst")
 done
 
 if [[ "$(id -u)" -eq 0 && "$TARGET_UID" -ne 0 ]]; then
