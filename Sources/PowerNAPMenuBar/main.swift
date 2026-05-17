@@ -55,7 +55,7 @@ final class PowerNAPMenuApp: NSObject, NSApplicationDelegate {
         let description: String
         switch snapshot.sleepState {
         case .blocked:
-            symbolName = "bolt.circle.fill"
+            symbolName = "bolt"
             description = "PowerNAP is keeping this Mac awake"
         case .allowed:
             symbolName = "zzz"
