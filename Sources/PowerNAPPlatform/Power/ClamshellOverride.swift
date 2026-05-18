@@ -6,7 +6,12 @@ private let kPMSetClamshellSleepState: UInt32 = 12
 
 public final class ClamshellOverride {
     private let lock = NSLock()
-    private(set) public var isActive: Bool = false
+    private var _isActive: Bool = false
+    public var isActive: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _isActive
+    }
     private let logger: Logger
     private let setDisablePower: (Bool) throws -> Void
 
@@ -24,7 +29,7 @@ public final class ClamshellOverride {
         lock.lock()
         defer { lock.unlock() }
         try setDisablePower(true)
-        isActive = true
+        _isActive = true
         logger.info("clamshell override enabled (sleep-on-lid-close disabled)")
     }
 
@@ -32,7 +37,7 @@ public final class ClamshellOverride {
         lock.lock()
         defer { lock.unlock() }
         try setDisablePower(false)
-        isActive = false
+        _isActive = false
         logger.info("clamshell override disabled (sleep-on-lid-close re-enabled)")
     }
 
@@ -41,7 +46,7 @@ public final class ClamshellOverride {
         defer { lock.unlock() }
         do {
             try setDisablePower(false)
-            isActive = false
+            _isActive = false
             logger.warning("clamshell override force cleared (watchdog/shutdown)")
         } catch {
             logger.warning("clamshell override force clear failed (watchdog/shutdown)", metadata: ["error": "\(error)"])
