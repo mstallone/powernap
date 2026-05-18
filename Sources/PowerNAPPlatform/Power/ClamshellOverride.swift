@@ -41,15 +41,18 @@ public final class ClamshellOverride {
         logger.info("clamshell override disabled (sleep-on-lid-close re-enabled)")
     }
 
-    public func forceClearIgnoreErrors() {
+    @discardableResult
+    public func forceClearIgnoreErrors() -> Bool {
         lock.lock()
         defer { lock.unlock() }
         do {
             try setDisablePower(false)
             _isActive = false
             logger.warning("clamshell override force cleared (watchdog/shutdown)")
+            return true
         } catch {
             logger.warning("clamshell override force clear failed (watchdog/shutdown)", metadata: ["error": "\(error)"])
+            return false
         }
     }
 

@@ -45,7 +45,10 @@ public enum WatchdogRuntime {
         if heartbeatAge > staleThresholdSeconds || !daemonAlive {
             logger.warning("releasing clamshell - heartbeat_age=\(String(format: "%.1f", heartbeatAge))s daemon_alive=\(daemonAlive)")
             let clamshell = ClamshellOverride(logger: logger)
-            clamshell.forceClearIgnoreErrors()
+            guard clamshell.forceClearIgnoreErrors() else {
+                logger.error("clamshell clear failed; keeping clamshell_state active for retry")
+                return
+            }
             try store.setClamshellActive(false, pid: nil)
             let stale = try store.janitorStaleLeases(olderThan: staleThresholdSeconds)
             logger.warning("released \(stale.count) stale leases")

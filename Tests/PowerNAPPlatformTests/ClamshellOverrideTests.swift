@@ -12,8 +12,9 @@ final class ClamshellOverrideTests: XCTestCase {
         })
 
         try override.enable()
-        override.forceClearIgnoreErrors()
+        let didClear = override.forceClearIgnoreErrors()
 
+        XCTAssertFalse(didClear)
         XCTAssertTrue(override.isActive)
         XCTAssertEqual(calls, [true, false])
     }
@@ -22,8 +23,9 @@ final class ClamshellOverrideTests: XCTestCase {
         let override = ClamshellOverride(setDisablePower: { _ in })
 
         try override.enable()
-        override.forceClearIgnoreErrors()
+        let didClear = override.forceClearIgnoreErrors()
 
+        XCTAssertTrue(didClear)
         XCTAssertFalse(override.isActive)
     }
 }

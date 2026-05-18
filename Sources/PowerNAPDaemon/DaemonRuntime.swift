@@ -24,8 +24,11 @@ public enum DaemonRuntime {
         if openClamshell {
             logger.warning("startup: found lingering clamshell_state=active - clearing (safety bias)")
             let recovery = ClamshellOverride(logger: logger)
-            recovery.forceClearIgnoreErrors()
-            try store.setClamshellActive(false, pid: nil)
+            if recovery.forceClearIgnoreErrors() {
+                try store.setClamshellActive(false, pid: nil)
+            } else {
+                logger.error("startup: clamshell override clear failed; keeping clamshell_state active")
+            }
         }
         let staleLeases = try store.janitorStaleLeases(olderThan: 300)
         if !staleLeases.isEmpty {
@@ -87,7 +90,6 @@ public enum DaemonRuntime {
         termSource.setEventHandler {
             logger.info("SIGTERM received - shutting down")
             leaseManager.forceRelease(reason: .daemonShutdown)
-            try? store.setClamshellActive(false, pid: nil)
             DaemonShutdown.shared.trigger()
         }
         termSource.resume()
@@ -97,7 +99,6 @@ public enum DaemonRuntime {
         intSource.setEventHandler {
             logger.info("SIGINT received - shutting down")
             leaseManager.forceRelease(reason: .daemonShutdown)
-            try? store.setClamshellActive(false, pid: nil)
             DaemonShutdown.shared.trigger()
         }
         intSource.resume()
@@ -342,7 +343,15 @@ public final class DaemonServer {
         case .restore(let reason):
             leaseManager.forceRelease(reason: .manualRestore)
             let clamshell = ClamshellOverride(logger: logger)
-            clamshell.forceClearIgnoreErrors()
+            let clamshellWasActive = (try? store.clamshellIsActive()) ?? false
+            let forceClearSucceeded = clamshell.forceClearIgnoreErrors()
+            if clamshellWasActive && !forceClearSucceeded {
+                logger.error("restore requested (reason=\(reason ?? "-")): clamshell clear failed; keeping state active")
+                return IPCResponse(requestId: request.id, body: .error(
+                    code: "restore_failed",
+                    message: "clamshell override clear failed"
+                ))
+            }
             let open = (try? store.openLeases()) ?? []
             for lease in open {
                 try? store.releaseLease(id: lease.id, reason: .manualRestore)
