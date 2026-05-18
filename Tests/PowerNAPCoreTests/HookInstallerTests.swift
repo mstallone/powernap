@@ -252,6 +252,11 @@ final class HookInstallerTests: XCTestCase {
         )
         defer { ClaudeHookInstaller.cleanupOverlay(path: r.overlayPath) }
 
+        let expectedOverlayDir = fakeHome.appendingPathComponent(
+            "Library/Caches/PowerNAP/claude-overlays",
+            isDirectory: true
+        )
+        XCTAssertTrue(r.overlayPath.hasPrefix(expectedOverlayDir.path + "/"))
         XCTAssertTrue(FileManager.default.fileExists(atPath: r.overlayPath))
         let data = try Data(contentsOf: URL(fileURLWithPath: r.overlayPath))
         let obj = try XCTUnwrap(JSONSerialization.jsonObject(with: data, options: []) as? [String: Any])
