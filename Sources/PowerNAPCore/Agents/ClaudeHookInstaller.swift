@@ -75,7 +75,7 @@ public enum ClaudeHookInstaller {
 
         merged["hooks"] = hooksBlock
 
-        let overlayDir = URL(fileURLWithPath: NSHomeDirectory())
+        let overlayDir = URL(fileURLWithPath: home)
             .appendingPathComponent("Library/Caches/PowerNAP/claude-overlays", isDirectory: true)
         try FileSystemHelper.ensureDirectory(at: overlayDir, permissions: 0o700)
 
