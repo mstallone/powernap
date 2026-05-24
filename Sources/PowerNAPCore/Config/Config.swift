@@ -11,7 +11,7 @@ public struct Config: Sendable, Equatable {
         public init(
             closedLidEnabled: Bool = true,
             idleSleepAssertion: Bool = true,
-            maxClosedLidMinutes: Int = 120,
+            maxClosedLidMinutes: Int = 720,
             releaseWhenWaiting: Bool = true,
             prearmClamshellOnActive: Bool = true
         ) {
@@ -40,7 +40,7 @@ public struct Config: Sendable, Equatable {
             allowThermalSerious: Bool = false,
             watchdogHeartbeatSeconds: Int = 60,
             watchdogReleaseAfterSeconds: Int = 180,
-            activeLeaseTTLSeconds: Int = 1800,
+            activeLeaseTTLSeconds: Int = 43200,
             waitingGraceSeconds: Int = 20
         ) {
             self.minBatteryPercent = minBatteryPercent

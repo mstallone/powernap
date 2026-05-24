@@ -284,7 +284,7 @@ final class DaemonIntegrationTests: XCTestCase {
     [power]
     closed_lid_enabled = false
     idle_sleep_assertion = false
-    max_closed_lid_minutes = 120
+    max_closed_lid_minutes = 720
     release_when_waiting = true
     prearm_clamshell_on_active = false
 
@@ -295,7 +295,7 @@ final class DaemonIntegrationTests: XCTestCase {
     allow_thermal_serious = false
     watchdog_heartbeat_seconds = 60
     watchdog_release_after_seconds = 180
-    active_lease_ttl_seconds = 1800
+    active_lease_ttl_seconds = 43200
     waiting_grace_seconds = 20
 
     [agents.codex]

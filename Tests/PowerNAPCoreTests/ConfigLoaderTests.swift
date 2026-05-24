@@ -7,10 +7,12 @@ final class ConfigLoaderTests: XCTestCase {
         let cfg = try ConfigLoader.parse(ConfigLoader.defaultTOML)
         XCTAssertTrue(cfg.power.closedLidEnabled)
         XCTAssertTrue(cfg.power.idleSleepAssertion)
+        XCTAssertEqual(cfg.power.maxClosedLidMinutes, 720)
         XCTAssertEqual(cfg.safety.minBatteryPercent, 20)
         XCTAssertEqual(cfg.safety.criticalBatteryPercent, 10)
         XCTAssertEqual(cfg.safety.watchdogHeartbeatSeconds, 60)
         XCTAssertEqual(cfg.safety.watchdogReleaseAfterSeconds, 180)
+        XCTAssertEqual(cfg.safety.activeLeaseTTLSeconds, 43_200)
         XCTAssertEqual(cfg.codex.hookMode, "global-inert")
         XCTAssertEqual(cfg.claude.hookMode, "per-run-settings")
     }
