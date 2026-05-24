@@ -86,9 +86,10 @@ public final class LeaseManager: @unchecked Sendable {
         evaluate(triggerEvent: reason)
     }
 
-    public func forceRelease(reason: LeaseReleaseReason) {
+    @discardableResult
+    public func forceRelease(reason: LeaseReleaseReason) -> Bool {
         lock.lock(); defer { lock.unlock() }
-        releaseAll(reason: reason, lockHeld: true)
+        return releaseAll(reason: reason, lockHeld: true)
     }
 
     private func updateActiveRun(for event: AgentEvent) {
@@ -278,11 +279,22 @@ public final class LeaseManager: @unchecked Sendable {
         logger.info("released idle-sleep lease", metadata: ["reason": .string(reason.rawValue)])
     }
 
-    private func releaseClamshell(reason: LeaseReleaseReason) {
-        if !clamshell.isActive { return }
-        do { try clamshell.disable() } catch {
+    @discardableResult
+    private func releaseClamshell(reason: LeaseReleaseReason) -> Bool {
+        if !clamshell.isActive { return true }
+        let cleared: Bool
+        do {
+            try clamshell.disable()
+            cleared = true
+        } catch {
             logger.error("clamshell disable failed: \(error) - forcing clear")
-            clamshell.forceClearIgnoreErrors()
+            cleared = clamshell.forceClearIgnoreErrors()
+        }
+        guard cleared else {
+            logger.error("clamshell release failed; keeping clamshell state active", metadata: [
+                "reason": .string(reason.rawValue)
+            ])
+            return false
         }
         try? store.setClamshellActive(false, pid: nil)
         if let id = clamshellLeaseID {
@@ -290,11 +302,13 @@ public final class LeaseManager: @unchecked Sendable {
             clamshellLeaseID = nil
         }
         logger.info("released clamshell-sleep lease", metadata: ["reason": .string(reason.rawValue)])
+        return true
     }
 
-    private func releaseAll(reason: LeaseReleaseReason, lockHeld: Bool) {
+    @discardableResult
+    private func releaseAll(reason: LeaseReleaseReason, lockHeld: Bool) -> Bool {
         releaseIdle(reason: reason)
-        releaseClamshell(reason: reason)
+        return releaseClamshell(reason: reason)
     }
 
     private func startHeartbeat() {

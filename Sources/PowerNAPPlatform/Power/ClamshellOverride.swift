@@ -13,15 +13,22 @@ public final class ClamshellOverride {
         return _isActive
     }
     private let logger: Logger
+    private let setDisablePower: (Bool) throws -> Void
 
     public init(logger: Logger? = nil) {
         self.logger = logger ?? Logger(label: "dev.powernap.power.clamshell")
+        self.setDisablePower = Self.setDisableWithIOKit
+    }
+
+    init(logger: Logger? = nil, setDisablePower: @escaping (Bool) throws -> Void) {
+        self.logger = logger ?? Logger(label: "dev.powernap.power.clamshell")
+        self.setDisablePower = setDisablePower
     }
 
     public func enable() throws {
         lock.lock()
         defer { lock.unlock() }
-        try setDisable(true)
+        try setDisablePower(true)
         _isActive = true
         logger.info("clamshell override enabled (sleep-on-lid-close disabled)")
     }
@@ -29,20 +36,27 @@ public final class ClamshellOverride {
     public func disable() throws {
         lock.lock()
         defer { lock.unlock() }
-        try setDisable(false)
+        try setDisablePower(false)
         _isActive = false
         logger.info("clamshell override disabled (sleep-on-lid-close re-enabled)")
     }
 
-    public func forceClearIgnoreErrors() {
+    @discardableResult
+    public func forceClearIgnoreErrors() -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        try? setDisable(false)
-        _isActive = false
-        logger.warning("clamshell override force cleared (watchdog/shutdown)")
+        do {
+            try setDisablePower(false)
+            _isActive = false
+            logger.warning("clamshell override force cleared (watchdog/shutdown)")
+            return true
+        } catch {
+            logger.warning("clamshell override force clear failed (watchdog/shutdown)", metadata: ["error": "\(error)"])
+            return false
+        }
     }
 
-    private func setDisable(_ disableSleepOnLidClose: Bool) throws {
+    private static func setDisableWithIOKit(_ disableSleepOnLidClose: Bool) throws {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
         guard service != IO_OBJECT_NULL else {
             throw PowerError.clamshellMatchFailed

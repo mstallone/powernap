@@ -40,13 +40,26 @@ struct RestoreCommand: AsyncParsableCommand {
     private func localRestore(reason: String) throws {
         let logger = PowerNAPLogger.make("restore")
         let clamshell = ClamshellOverride(logger: logger)
-        clamshell.forceClearIgnoreErrors()
 
         let store = try StateStore(logger: logger)
+        let clamshellWasActive = try store.clamshellIsActive()
+        let forceClearSucceeded = clamshell.forceClearIgnoreErrors()
+        if clamshellWasActive && !forceClearSucceeded {
+            throw LocalRestoreError.clamshellClearFailed
+        }
+
         let open = try store.openLeases()
         for lease in open {
             try store.releaseLease(id: lease.id, reason: .manualRestore)
         }
         try store.setClamshellActive(false, pid: nil)
+    }
+}
+
+private enum LocalRestoreError: LocalizedError {
+    case clamshellClearFailed
+
+    var errorDescription: String? {
+        "clamshell override clear failed"
     }
 }
